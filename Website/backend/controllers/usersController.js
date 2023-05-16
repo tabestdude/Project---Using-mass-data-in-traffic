@@ -51,12 +51,24 @@ module.exports = {
      * usersController.create()
      */
     create: function (req, res) {
-        var users = new UsersModel({
-			username : req.body.username,
-			password : req.body.password
+        var securePassword = "password123"
+        bcrypt.hash(req.body.password, 10, function(err, hash){
+            if(err){
+                return res.status(500).json({
+                    message: 'Hashing password failed',
+                    error: err
+                });
+            }
+            securePassword = hash;
         });
 
-        users.save(function (err, users) {
+        var users = new UsersModel({
+            email : req.body.email,
+			username : req.body.username,
+			password : securePassword
+        });
+
+        users.save(function (err, user) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when creating users',
@@ -64,7 +76,7 @@ module.exports = {
                 });
             }
 
-            return res.status(201).json(users);
+            return res.status(201).json(user);
         });
     },
 
@@ -88,6 +100,7 @@ module.exports = {
                 });
             }
 
+            users.email = req.body.email ? req.body.email : users.email;
             users.username = req.body.username ? req.body.username : users.username;
 			users.password = req.body.password ? req.body.password : users.password;
 			

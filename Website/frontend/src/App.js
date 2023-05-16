@@ -1,24 +1,35 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
+import { UserContext } from "./userContext";
+import Header from "./components/Header";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import Logout from "./components/Logout";
 
 function App() {
+
+  const [user, setUser] = useState(localStorage.user ? JSON.parse(localStorage.user) : null);
+  const updateUserData = (userInfo) => {
+    localStorage.setItem("user", JSON.stringify(userInfo));
+    setUser(userInfo);
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <UserContext.Provider value={{
+        user: user,
+        setUserContext: updateUserData
+      }}>
+        <div className="App">
+          <Header title="My application"></Header>
+          <Routes>
+            <Route path="/login" exact element={<Login />}></Route>
+            <Route path="/register" exact element={<Register />}></Route>
+            <Route path="/logout" exact element={<Logout />}></Route>
+          </Routes>
+        </div>
+      </UserContext.Provider>
+    </BrowserRouter>
   );
 }
 
