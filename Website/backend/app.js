@@ -13,7 +13,11 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var usersRouter = require('./routes/usersRoutes');
+var gpsDataRouter = require('./routes/gpsDataRoutes');
+var accelerometerDataRouter = require('./routes/accelerometerDataRoutes');
+var gyroscopeDataRouter = require('./routes/gyroscopeDataRoutes');
+var roadStateRouter = require('./routes/roadStateRoutes');
 
 var app = express();
 
@@ -45,11 +49,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 var session = require('express-session');
 var MongoStore = require('connect-mongo');
 app.use(session({
-  secret: 'Lenko in Majer are best friends',
+  secret: 'Lenko are Majer are best friends',
   resave: true,
   saveUninitialized: false,
   store: MongoStore.create({mongoUrl: mongoDB})
 }));
+
 //Shranimo sejne spremenljivke v locals
 //Tako lahko do njih dostopamo v vseh view-ih (glej layout.hbs)
 app.use(function (req, res, next) {
@@ -59,6 +64,10 @@ app.use(function (req, res, next) {
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/gpsData', gpsDataRouter);
+app.use('/accelerometerData', accelerometerDataRouter);
+app.use('/gyroscopeData', gyroscopeDataRouter);
+app.use('/roadState', roadStateRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
