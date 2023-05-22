@@ -18,9 +18,18 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
-import kotlin.math.pow
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.mongodb.ConnectionString
+//import com.mongodb.MongoClientURI
+//import com.mongodb.MongoClient
+import com.mongodb.MongoClientSettings
+import com.mongodb.client.MongoClients
+import com.mongodb.client.MongoDatabase
+import com.mongodb.client.MongoCollection
+import com.mongodb.client.model.InsertOneModel
+import org.bson.Document
+import java.util.concurrent.TimeUnit
 
 var globalGiroX = 0.0;
 var globalGiroY = 0.0;
@@ -32,8 +41,6 @@ var globalAccZ = 0.0;
 
 var globalLongitude = 0.0;
 var globalLatitude = 0.0;
-
-var globalSpeed = 0.0;
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -54,12 +61,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var giroXTextView: TextView
     private lateinit var giroYTextView: TextView
     private lateinit var giroZTextView: TextView
-
-    private var previousPosition: FloatArray? = null
-    private var currentPosition: FloatArray? = null
-    private var previousTimestamp: Long = 0
-
-    private lateinit var speedTextView: TextView
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -82,8 +83,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         giroYTextView = findViewById<TextView>(R.id.giroY)
         giroZTextView = findViewById<TextView>(R.id.giroZ)
 
-        speedTextView = findViewById<TextView>(R.id.speed)
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         latitudeTextView = findViewById<TextView>(R.id.latitude)
@@ -98,12 +97,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val intent = Intent(this@MainActivity, InfoActivity::class.java)
             startActivity(intent)
         }
-
-        //val mapButtonClick = findViewById<Button>(R.id.mapButton)
-        /*mapButtonClick.setOnClickListener {
-            val intent2 = Intent(this@MainActivity, MapActivity::class.java)
-            startActivity(intent2)
-        }*/
 
         Log.d("MainActivity", "Test log.")
     }
@@ -132,7 +125,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
         startRunnable()
-        sendToDatabase()
+        databaseThread.start()
         // registracija senzorjev
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL)
@@ -156,7 +149,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                         globalLatitude = location.latitude.toDouble()
                         globalLongitude = location.longitude.toDouble()
 
-                        Log.d("MainActivity", "Latitude: $latitude, Longitude: $longitude")
+                        //Log.d("MainActivity", "Latitude: $latitude, Longitude: $longitude")
                     }
                 }
             } else {
@@ -172,6 +165,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         // odregistracija senzorjev
         mSensorManager.unregisterListener(this)
+
+        databaseThread.interrupt()
+        databaseThread.join()
     }
 
     private var lastUpdateTime: Long = 0
@@ -182,34 +178,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val currentTime1 = System.currentTimeMillis()
 
             if (currentTime1 - lastUpdateTime >= 5000) {
-            // x y z TextView se posodobi
-            accXTextView.text = "X: ${event.values[0]}"
-            accYTextView.text = "Y: ${event.values[1]}"
-            accZTextView.text = "Z: ${event.values[2]}"
+                // x y z TextView se posodobi
+                accXTextView.text = "X: ${event.values[0]}"
+                accYTextView.text = "Y: ${event.values[1]}"
+                accZTextView.text = "Z: ${event.values[2]}"
 
                 globalAccX = event.values[0].toDouble()
                 globalAccY = event.values[1].toDouble()
                 globalAccZ = event.values[2].toDouble()
             }
-
-            // Calculate the speed
-            val currentTime = System.currentTimeMillis()
-            if (previousPosition != null && previousTimestamp != 0L) {
-                currentPosition = event.values.clone()
-                val timeDelta = (currentTime - previousTimestamp) / 1000.0 // Convert to seconds
-                val displacement =
-                    calculateDisplacement(currentPosition!!, previousPosition!!, timeDelta)
-                val distance = calculateDistance(displacement)
-                val speed: Double = distance / timeDelta * 3.6
-                if (currentTime1 - lastUpdateTime >= 5000) {
-                    speedTextView.text = "Speed: ${String.format("%.2f", speed)} km/h"
-
-                    globalSpeed = speed.toDouble()
-                }
-            }
-            previousPosition = event.values.clone()
-
-            previousTimestamp = currentTime
         } else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastUpdateTime >= 5000) {
@@ -227,37 +204,48 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private fun calculateDisplacement(
-        currentPosition: FloatArray,
-        previousPosition: FloatArray,
-        timeDelta: Double
-    ): FloatArray {
-        val displacement = FloatArray(3)
-        displacement[0] = ((currentPosition[0] - previousPosition[0]) * timeDelta * timeDelta / 2).toFloat()
-        displacement[1] = ((currentPosition[1] - previousPosition[1]) * timeDelta * timeDelta / 2).toFloat()
-        displacement[2] = ((currentPosition[2] - previousPosition[2]) * timeDelta * timeDelta / 2).toFloat()
-        return displacement
-    }
+    private val databaseThread = Thread {
+        Log.d("MainActivity", "sendDB1")
+        val uri = "mongodb://atlas-sql-646bbe06bfc0fd386ef4b94a-rexec.a.query.mongodb.net/DataCollection?ssl=true&authSource=admin"
+        // Create a MongoClient object and connect to the MongoDB Atlas cluster
+        val settings = MongoClientSettings.builder()
+            .applyConnectionString(ConnectionString(uri))
+            .retryWrites(true)
+            .applyToSocketSettings {
+                it.connectTimeout(30000, TimeUnit.MILLISECONDS)
+                it.readTimeout(30000, TimeUnit.MILLISECONDS)
+            }
+            .build()
+        val mongoClient = MongoClients.create(settings)
 
-    private fun calculateDistance(displacement: FloatArray): Float {
-        val distance = Math.sqrt(displacement[0].toDouble().pow(2) + displacement[1].toDouble().pow(2) + displacement[2].toDouble().pow(2)).toFloat()
-        return distance
-    }
+        // Get a MongoDatabase object from the MongoClient object
+        val database: MongoDatabase = mongoClient.getDatabase("DataCollection")
+        // Get a MongoCollection object from the MongoDatabase object
+        val collection: MongoCollection<Document> = database.getCollection("Data")
+        Log.d("MainActivity", "sendDB2")
+        while (true) {
+            // Create a list of Document objects with the sensor data
+            val document = Document("giroX", globalGiroX)
+                .append("giroY", globalGiroY)
+                .append("giroZ", globalGiroZ)
+                .append("accX", globalAccX)
+                .append("accY", globalAccY)
+                .append("accZ", globalAccZ)
+                .append("longitude", globalLongitude)
+                .append("latitude", globalLatitude)
 
-    private fun sendToDatabase() {
-        handler.postDelayed({
-            // Code to run every 5 seconds
-
-            val dialogBuilder = AlertDialog.Builder(this)
-            dialogBuilder.setTitle("Variables to be sent to the Database.")
-            val message = "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\nSpeed: $globalSpeed"
-            dialogBuilder.setMessage(message)
-            dialogBuilder.setPositiveButton("OK", null)
-            val dialog = dialogBuilder.create()
-            dialog.show()
-
-            sendToDatabase() // Schedule the code to run again after 5 seconds
-        }, 20000)
+            Log.d("MainActivity", "sendDB3")
+            // Insert the documents into the collection
+            try {
+                collection.insertOne(document)
+                Log.d("MainActivity", "Data written to database.")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error writing data to database: ${e.message}")
+            }
+            Log.d("MainActivity", "sendDB4")
+            // Sleep for 10 seconds before writing to the database again
+            Thread.sleep(40000)
+        }
     }
 
 }
