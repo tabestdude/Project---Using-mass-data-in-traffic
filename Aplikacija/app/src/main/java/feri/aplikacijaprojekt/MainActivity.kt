@@ -20,16 +20,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.mongodb.ConnectionString
-//import com.mongodb.MongoClientURI
-//import com.mongodb.MongoClient
-import com.mongodb.MongoClientSettings
-import com.mongodb.client.MongoClients
-import com.mongodb.client.MongoDatabase
-import com.mongodb.client.MongoCollection
-import com.mongodb.client.model.InsertOneModel
-import org.bson.Document
-import java.util.concurrent.TimeUnit
 
 var globalGiroX = 0.0;
 var globalGiroY = 0.0;
@@ -99,6 +89,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
         Log.d("MainActivity", "Test log.")
+
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
@@ -125,7 +116,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
         startRunnable()
-        databaseThread.start()
+        sendToDatabase()
         // registracija senzorjev
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL)
@@ -165,9 +156,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         // odregistracija senzorjev
         mSensorManager.unregisterListener(this)
-
-        databaseThread.interrupt()
-        databaseThread.join()
     }
 
     private var lastUpdateTime: Long = 0
@@ -204,48 +192,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private val databaseThread = Thread {
-        Log.d("MainActivity", "sendDB1")
-        val uri = "mongodb://atlas-sql-646bbe06bfc0fd386ef4b94a-rexec.a.query.mongodb.net/DataCollection?ssl=true&authSource=admin"
-        // Create a MongoClient object and connect to the MongoDB Atlas cluster
-        val settings = MongoClientSettings.builder()
-            .applyConnectionString(ConnectionString(uri))
-            .retryWrites(true)
-            .applyToSocketSettings {
-                it.connectTimeout(30000, TimeUnit.MILLISECONDS)
-                it.readTimeout(30000, TimeUnit.MILLISECONDS)
-            }
-            .build()
-        val mongoClient = MongoClients.create(settings)
+    private fun sendToDatabase() {
+        handler.postDelayed({
+            // Code to run every 5 seconds
 
-        // Get a MongoDatabase object from the MongoClient object
-        val database: MongoDatabase = mongoClient.getDatabase("DataCollection")
-        // Get a MongoCollection object from the MongoDatabase object
-        val collection: MongoCollection<Document> = database.getCollection("Data")
-        Log.d("MainActivity", "sendDB2")
-        while (true) {
-            // Create a list of Document objects with the sensor data
-            val document = Document("giroX", globalGiroX)
-                .append("giroY", globalGiroY)
-                .append("giroZ", globalGiroZ)
-                .append("accX", globalAccX)
-                .append("accY", globalAccY)
-                .append("accZ", globalAccZ)
-                .append("longitude", globalLongitude)
-                .append("latitude", globalLatitude)
+            val dialogBuilder = AlertDialog.Builder(this)
+            dialogBuilder.setTitle("Variables to be sent to the Database.")
+            val message =
+                "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\n"
+            dialogBuilder.setMessage(message)
+            dialogBuilder.setPositiveButton("OK", null)
+            val dialog = dialogBuilder.create()
+            dialog.show()
 
-            Log.d("MainActivity", "sendDB3")
-            // Insert the documents into the collection
-            try {
-                collection.insertOne(document)
-                Log.d("MainActivity", "Data written to database.")
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error writing data to database: ${e.message}")
-            }
-            Log.d("MainActivity", "sendDB4")
-            // Sleep for 10 seconds before writing to the database again
-            Thread.sleep(40000)
-        }
+            sendToDatabase() // Schedule the code to run again after 5 seconds
+        }, 20000)
     }
 
 }
