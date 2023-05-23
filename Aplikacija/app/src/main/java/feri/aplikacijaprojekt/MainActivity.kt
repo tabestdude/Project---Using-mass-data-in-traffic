@@ -20,6 +20,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 var globalGiroX = 0.0;
 var globalGiroY = 0.0;
@@ -196,8 +199,27 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         handler.postDelayed({
             // Code to run every 5 seconds
 
+            // Create a new Data object with the sensor data
+            val data = Data(
+                globalGiroX,
+                globalGiroY,
+                globalGiroZ,
+                globalAccX,
+                globalAccY,
+                globalAccZ,
+                globalLongitude,
+                globalLatitude,
+                ownerId = null // Set the ownerId to null for now
+            )
+
+            // Insert the data into the database using a coroutine
+            CoroutineScope(Dispatchers.IO).launch {
+                Log.d("MainActivity", "Sending data. At least trying to.")
+                MongoDB.insertData(data)
+            }
+
             val dialogBuilder = AlertDialog.Builder(this)
-            dialogBuilder.setTitle("Variables to be sent to the Database.")
+            dialogBuilder.setTitle("Variables sent to the Database.")
             val message =
                 "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\n"
             dialogBuilder.setMessage(message)
