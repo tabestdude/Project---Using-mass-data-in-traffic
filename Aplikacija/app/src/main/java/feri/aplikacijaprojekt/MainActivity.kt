@@ -23,6 +23,11 @@ import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
 
 var globalGiroX = 0.0;
 var globalGiroY = 0.0;
@@ -90,8 +95,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val intent = Intent(this@MainActivity, InfoActivity::class.java)
             startActivity(intent)
         }
-
-        Log.d("MainActivity", "Test log.")
 
     }
 
@@ -195,40 +198,73 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+    private val client = OkHttpClient()
+
+    private fun sendDataToServer(data: JSONObject) {
+        Log.d("MainActivity", "Sending data to server 1.")
+
+        val jsonMediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val requestBody = data.toString().toRequestBody(jsonMediaType)
+        Log.d("MainActivity", "Sending data to server 2.")
+        val request = Request.Builder()
+            .url("http://192.168.1.130:3000/api/data")
+            .post(requestBody)
+            .build()
+        Log.d("MainActivity", "Sending data to server 3.")
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                Log.d("MainActivity", "Sending data to server 4.")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (!response.isSuccessful) {
+                    Log.d("MainActivity", "Server response: $response")
+                    Log.d("MainActivity", "Sending data to server 5.")
+                    throw IOException("Unexpected code $response")
+                } else {
+                    val responseData = response.body?.string()
+                    Log.d("MainActivity", "Server response: $responseData")
+                    Log.d("MainActivity", "Sending data to server 6.")
+                }
+            }
+        })
+        Log.d("MainActivity", "Sending data to server 7.")
+    }
+
     private fun sendToDatabase() {
         handler.postDelayed({
             // Code to run every 5 seconds
 
-            // Create a new Data object with the sensor data
-            val data = Data(
-                globalGiroX,
-                globalGiroY,
-                globalGiroZ,
-                globalAccX,
-                globalAccY,
-                globalAccZ,
-                globalLongitude,
-                globalLatitude,
-                ownerId = null // Set the ownerId to null for now
-            )
+            // Create a new JSONObject with the sensor data
+            val dataToSend = JSONObject()
+            dataToSend.put("giroX", globalGiroX)
+            dataToSend.put("giroY", globalGiroY)
+            dataToSend.put("giroZ", globalGiroZ)
+            dataToSend.put("accX", globalAccX)
+            dataToSend.put("accY", globalAccY)
+            dataToSend.put("accZ", globalAccZ)
+            dataToSend.put("longitude", globalLongitude)
+            dataToSend.put("latitude", globalLatitude)
+            dataToSend.put("ownerId", null) // Set the ownerId to null for now
 
-            // Insert the data into the database using a coroutine
-            CoroutineScope(Dispatchers.IO).launch {
-                Log.d("MainActivity", "Sending data. At least trying to.")
-                MongoDB.insertData(data)
-            }
+            sendDataToServer(dataToSend)
 
-            val dialogBuilder = AlertDialog.Builder(this)
-            dialogBuilder.setTitle("Variables sent to the Database.")
-            val message =
-                "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\n"
-            dialogBuilder.setMessage(message)
-            dialogBuilder.setPositiveButton("OK", null)
-            val dialog = dialogBuilder.create()
-            dialog.show()
+            //Log.d("MainActivity", "Sending data to server.")
 
-            sendToDatabase() // Schedule the code to run again after 5 seconds
-        }, 20000)
+        }, 5000)
     }
 
 }
+
+
+
+/*val message =
+    "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\n"
+dialogBuilder.setMessage(message)
+dialogBuilder.setPositiveButton("OK", null)
+val dialog = dialogBuilder.create()
+dialog.show()
+val dialogBuilder = AlertDialog.Builder(this)
+dialogBuilder.setTitle("Variables sent to the Database.")
+*/ // Schedule the code to run again after 5 seconds
