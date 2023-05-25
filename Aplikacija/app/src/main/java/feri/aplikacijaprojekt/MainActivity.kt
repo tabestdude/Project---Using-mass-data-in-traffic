@@ -1,6 +1,7 @@
 package feri.aplikacijaprojekt
 
 import android.Manifest
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,12 +23,30 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
+import org.json.JSONObject
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
+import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
+
+/*import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.IOException
+import java.io.IOException*/
 
 var globalGiroX = 0.0;
 var globalGiroY = 0.0;
@@ -122,7 +141,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
         startRunnable()
-        sendToDatabase()
+        CoroutineScope(Dispatchers.Main).launch {
+            sendToDatabase()
+        }
         // registracija senzorjev
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL)
@@ -198,42 +219,48 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private val client = OkHttpClient()
-
-    private fun sendDataToServer(data: JSONObject) {
-        Log.d("MainActivity", "Sending data to server 1.")
-
-        val jsonMediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
-        val requestBody = data.toString().toRequestBody(jsonMediaType)
-        Log.d("MainActivity", "Sending data to server 2.")
-        val request = Request.Builder()
-            .url("http://192.168.1.130:3000/api/data")
-            .post(requestBody)
-            .build()
-        Log.d("MainActivity", "Sending data to server 3.")
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                e.printStackTrace()
-                Log.d("MainActivity", "Sending data to server 4.")
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (!response.isSuccessful) {
-                    Log.d("MainActivity", "Server response: $response")
-                    Log.d("MainActivity", "Sending data to server 5.")
-                    throw IOException("Unexpected code $response")
-                } else {
-                    val responseData = response.body?.string()
-                    Log.d("MainActivity", "Server response: $responseData")
-                    Log.d("MainActivity", "Sending data to server 6.")
-                }
-            }
-        })
-        Log.d("MainActivity", "Sending data to server 7.")
+    interface ApiService {
+        @POST("send_data")
+        suspend fun sendData(@Body data: RequestBody): Response<Unit>
     }
 
-    private fun sendToDatabase() {
-        handler.postDelayed({
+    private suspend fun sendDataToServer(data: JSONObject) {
+        Log.d("MainActivity", "Sending data: $data")
+        val retrofit = Retrofit.Builder()
+            .baseUrl("http://192.168.1.130:3000/api/data/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS) // <-- Increase timeout value
+                    .build()
+            )
+            .build()
+
+        val service = retrofit.create(ApiService::class.java)
+
+        val requestBody = data.toString().toRequestBody("application/json".toMediaTypeOrNull())
+
+        var response: Response<Unit>? = null
+        var retries = 0
+        while (response == null && retries < 3) {
+            try {
+                response = service.sendData(requestBody)
+            } catch (e: SocketTimeoutException) {
+                retries++
+                Log.e(TAG, "Socket timeout exception, retrying...")
+            }
+        }
+
+        if (response != null && response.isSuccessful) {
+            Log.d(TAG, "Data sent successfully")
+            Log.d(TAG, "Response: ${response.body()}")
+        } else {
+            Log.e(TAG, "Failed to send data or no response from server")
+        }
+    }
+
+    private suspend fun sendToDatabase() {
+        while (true) {
             // Code to run every 5 seconds
 
             // Create a new JSONObject with the sensor data
@@ -248,12 +275,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             dataToSend.put("latitude", globalLatitude)
             dataToSend.put("ownerId", null) // Set the ownerId to null for now
 
+            Log.d("MainActivity", "Data to send: $dataToSend")
+
             sendDataToServer(dataToSend)
 
-            //Log.d("MainActivity", "Sending data to server.")
-
-        }, 5000)
+            delay(5000)
+        }
     }
+
 
 }
 
