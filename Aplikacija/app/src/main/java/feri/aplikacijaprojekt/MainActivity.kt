@@ -30,6 +30,7 @@ import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
+import org.json.JSONArray
 import org.json.JSONObject
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -48,16 +49,18 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException*/
 
-var globalGiroX = 0.0;
-var globalGiroY = 0.0;
-var globalGiroZ = 0.0;
+var globalGiroX = DoubleArray(6)
+var globalGiroY = DoubleArray(6)
+var globalGiroZ = DoubleArray(6)
 
-var globalAccX = 0.0;
-var globalAccY = 0.0;
-var globalAccZ = 0.0;
+var globalAccX = DoubleArray(6)
+var globalAccY = DoubleArray(6)
+var globalAccZ = DoubleArray(6)
 
 var globalLongitude = 0.0;
 var globalLatitude = 0.0;
+
+private var counter = 0
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -189,19 +192,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-
             val currentTime1 = System.currentTimeMillis()
-
             if (currentTime1 - lastUpdateTime >= 5000) {
                 // x y z TextView se posodobi
                 accXTextView.text = "X: ${event.values[0]}"
                 accYTextView.text = "Y: ${event.values[1]}"
                 accZTextView.text = "Z: ${event.values[2]}"
-
-                globalAccX = event.values[0].toDouble()
-                globalAccY = event.values[1].toDouble()
-                globalAccZ = event.values[2].toDouble()
             }
+
+            globalAccX[counter] = event.values[0].toDouble()
+            globalAccY[counter] = event.values[1].toDouble()
+            globalAccZ[counter] = event.values[2].toDouble()
+
         } else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastUpdateTime >= 5000) {
@@ -210,24 +212,37 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 giroYTextView.text = "Y: ${event.values[1]}"
                 giroZTextView.text = "Z: ${event.values[2]}"
 
-                globalGiroX = event.values[0].toDouble()
-                globalGiroY = event.values[1].toDouble()
-                globalGiroZ = event.values[2].toDouble()
-
                 lastUpdateTime = currentTime
+            }
+
+            globalGiroX[counter] = event.values[0].toDouble()
+            globalGiroY[counter] = event.values[1].toDouble()
+            globalGiroZ[counter] = event.values[2].toDouble()
+
+            counter++
+
+            if (counter == 6) {
+                // Reset the counter and arrays
+                globalAccX = DoubleArray(6)
+                globalAccY = DoubleArray(6)
+                globalAccZ = DoubleArray(6)
+                globalGiroX = DoubleArray(6)
+                globalGiroY = DoubleArray(6)
+                globalGiroZ = DoubleArray(6)
+                counter = 0
             }
         }
     }
 
     interface ApiService {
-        @POST("send_data")
+        @POST("api/data/")
         suspend fun sendData(@Body data: RequestBody): Response<Unit>
     }
 
     private suspend fun sendDataToServer(data: JSONObject) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.130:3000/api/data/")
+            .baseUrl("http://192.168.1.130:3000/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()
@@ -250,7 +265,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 Log.e(TAG, "Socket timeout exception, retrying...")
             }
         }
-
+        Log.d("MainActivity", "Response: $response")
         if (response != null && response.isSuccessful) {
             Log.d(TAG, "Data sent successfully")
             Log.d(TAG, "Response: ${response.body()}")
@@ -261,16 +276,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private suspend fun sendToDatabase() {
         while (true) {
-            // Code to run every 5 seconds
-
             // Create a new JSONObject with the sensor data
             val dataToSend = JSONObject()
-            dataToSend.put("giroX", globalGiroX)
-            dataToSend.put("giroY", globalGiroY)
-            dataToSend.put("giroZ", globalGiroZ)
-            dataToSend.put("accX", globalAccX)
-            dataToSend.put("accY", globalAccY)
-            dataToSend.put("accZ", globalAccZ)
+            /*dataToSend.put("giroX", JSONArray(globalGiroX))
+            dataToSend.put("giroY", JSONArray(globalGiroY))
+            dataToSend.put("giroZ", JSONArray(globalGiroZ))*/
+            dataToSend.put("accX", JSONArray(globalAccX))
+            dataToSend.put("accY", JSONArray(globalAccY))
+            dataToSend.put("accZ", JSONArray(globalAccZ))
             dataToSend.put("longitude", globalLongitude)
             dataToSend.put("latitude", globalLatitude)
             dataToSend.put("ownerId", null) // Set the ownerId to null for now
@@ -279,9 +292,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
             sendDataToServer(dataToSend)
 
-            delay(5000)
+            delay(5000) // Wait 5 seconds before sending the next data point
         }
     }
+
+
 
 
 }
