@@ -34,6 +34,8 @@ class PhotoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo)
 
+        Toast.makeText(this, "Prosim zajemi sliko za nadaljevanje.", Toast.LENGTH_SHORT).show()
+
         viewFinder = findViewById(R.id.previewView)
         btnTakePhoto = findViewById(R.id.btnTakePhoto)
         btnContinue = findViewById(R.id.btnContinue)
