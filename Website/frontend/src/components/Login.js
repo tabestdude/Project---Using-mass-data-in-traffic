@@ -9,8 +9,9 @@ function Login(){
     const userContext = useContext(UserContext); 
 
     async function Login(e){
+        console.log("Login");
         e.preventDefault();
-        const res = await fetch("http://localhost:3001/users/login", {
+        const res = await fetch("http://localhost:3080/users/login", {
             method: "POST",
             credentials: "include",
             headers: { 'Content-Type': 'application/json'},
@@ -19,6 +20,15 @@ function Login(){
                 password: password
             })
         });
+        /*const res = await fetch("http://localhost:3001/users/login", {
+            method: "POST",
+            credentials: "include",
+            headers: { 'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });*/
         const data = await res.json();
         if(data._id !== undefined){
             userContext.setUserContext(data);
@@ -28,15 +38,7 @@ function Login(){
             setError("Invalid username or password");
         }
     }
-<form onSubmit={Login}>
-        {userContext.user ? <Navigate replace to="/" /> : ""}
-        <input type="text" name="username" placeholder="Username"
-        value={username} onChange={(e)=>(setUsername(e.target.value))}/>
-        <input type="password" name="password" placeholder="Password"
-        value={password} onChange={(e)=>(setPassword(e.target.value))}/>
-        <input type="submit" name="submit" value="Log in"/> <br/>
-        <label>{error}</label>
-        </form>
+
     return (
         <form onSubmit={Login} className="container mt-5">
             {userContext.user ? <Navigate replace to="/" /> : ""}

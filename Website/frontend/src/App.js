@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Logout from "./components/Logout";
+import Map from "./components/Map";
 
 function App() {
 
@@ -23,6 +24,7 @@ function App() {
         <div className="App">
           <Header title="My application"></Header>
           <Routes>
+            <Route path="/" exact element={<Map />}></Route>
             <Route path="/login" exact element={<Login />}></Route>
             <Route path="/register" exact element={<Register />}></Route>
             <Route path="/logout" exact element={<Logout />}></Route>

@@ -1,3 +1,4 @@
+console.log(process.env.PORT);
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -5,12 +6,14 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 var mongoose = require('mongoose');
-var mongoDB = "mongodb://127.0.0.1/MasiveDataProject";
+var mongoDB = "mongodb://mongo-db:27017/MasiveDataProject";
+//var mongoDB = "mongodb://127.0.0.1/MasiveDataProject";
 mongoose.connect(mongoDB);
 mongoose.Promise = global.Promise;
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+var test = 0;
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/usersRoutes');
@@ -22,7 +25,8 @@ var roadStateRouter = require('./routes/roadStateRoutes');
 var app = express();
 
 var cors = require('cors');
-var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+var allowedOrigins = ['http://localhost:3000', 'http://frontend:3000', 'http://backend:3080'];
+//var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
 app.use(cors({
   credentials: true,
   origin: function(origin, callback){
@@ -83,6 +87,10 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render('error');
+});
+
+app.listen(3080, '0.0.0.0', function() {
+  console.log('Node app is running on port', 3080);
 });
 
 module.exports = app;

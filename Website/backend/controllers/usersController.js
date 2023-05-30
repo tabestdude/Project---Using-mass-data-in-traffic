@@ -1,4 +1,5 @@
 var UsersModel = require('../models/usersModel.js');
+var bcrypt = require('bcrypt');
 
 /**
  * usersController.js
@@ -21,6 +22,46 @@ module.exports = {
 
             return res.json(userss);
         });
+    },
+
+    getTwoNewest: function(req, res){
+        UsersModel.find()
+        .sort({_id: -1})
+        .limit(2)
+        .populate('gpsData')
+        .populate('accelerometerData')
+        .populate('gyroscopeData')
+        .exec(function(err, userss){
+            if(err){
+                return res.status(500).json({
+                    message: 'Error when getting users.',
+                    error: err
+                });
+            }
+            return res.json(userss);
+        });
+    },
+
+    login: function(req, res, next){
+        UsersModel.authenticate(req.body.username, req.body.password, function(err, user){
+            if(err || !user){
+                return res.status(401).json({ error: 'Invalid username or password' });
+            }
+            req.session.userId = user._id;
+            return res.json(user);
+        });
+    },
+
+    logout: function(req, res, next){
+        if(req.session){
+            req.session.destroy(function(err){
+                if(err){
+                    return next(err);
+                } else{
+                    return res.status(201).json({});
+                }
+            });
+        }
     },
 
     /**
@@ -60,23 +101,22 @@ module.exports = {
                 });
             }
             securePassword = hash;
-        });
+            var users = new UsersModel({
+                email : req.body.email,
+                username : req.body.username,
+                password : securePassword
+            });
 
-        var users = new UsersModel({
-            email : req.body.email,
-			username : req.body.username,
-			password : securePassword
-        });
+            users.save(function (err, user) {
+                if (err) {
+                    return res.status(500).json({
+                        message: 'Error when creating users',
+                        error: err
+                    });
+                }
 
-        users.save(function (err, user) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when creating users',
-                    error: err
-                });
-            }
-
-            return res.status(201).json(user);
+                return res.status(201).json(user);
+            });
         });
     },
 

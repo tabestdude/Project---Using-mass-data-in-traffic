@@ -18,12 +18,6 @@ function Header(props) {
                         context.user ? (
                             <>
                                 <li className="list-inline-item">
-                                    <Link to="/publish" className="nav-link">Publish</Link>
-                                </li>
-                                <li className="list-inline-item">
-                                    <Link to="/profile" className="nav-link">Profile</Link>
-                                </li>
-                                <li className="list-inline-item">
                                     <Link to="/logout" className="nav-link">Logout</Link>
                                 </li>
                             </>

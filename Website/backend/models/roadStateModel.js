@@ -2,18 +2,18 @@ var mongoose = require('mongoose');
 var Schema   = mongoose.Schema;
 
 var roadStateSchema = new Schema({
-	'gpsData' : {
+	'gpsData' : [{
 	 	type: Schema.Types.ObjectId,
 	 	ref: 'gps'
-	},
-	'accelerometerData' : {
+	}],
+	'accelerometerData' : [{
 	 	type: Schema.Types.ObjectId,
 	 	ref: 'accelerometer'
-	},
-	'gyroscopeData' : {
+	}],
+	'gyroscopeData' : [{
 	 	type: Schema.Types.ObjectId,
 	 	ref: 'gyroscope'
-	},
+	}],
 	'stateOfRoad' : Number,
 	'recommendedDriving' : Boolean
 });
