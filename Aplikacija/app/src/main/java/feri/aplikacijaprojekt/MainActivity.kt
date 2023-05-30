@@ -286,7 +286,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             dataToSend.put("accZ", JSONArray(globalAccZ))
             dataToSend.put("longitude", globalLongitude)
             dataToSend.put("latitude", globalLatitude)
-            dataToSend.put("ownerId", "Huawei") // Set the ownerId to null for now
+            dataToSend.put("ownerId", null) // Set the ownerId to null for now
 
             Log.d("MainActivity", "Data to send: $dataToSend")
 
