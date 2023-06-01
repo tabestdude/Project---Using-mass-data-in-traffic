@@ -66,8 +66,10 @@ class PhotoActivity : AppCompatActivity() {
 
         // Set click listener for continue button
         btnContinue.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+            val mainIntent = Intent(this, MainActivity::class.java)
+            val userId = intent.getStringExtra("USER_ID");
+            mainIntent.putExtra("USER_ID", userId)
+            startActivity(mainIntent)
         }
 
         // Request camera permission
@@ -191,7 +193,7 @@ class PhotoActivity : AppCompatActivity() {
 
     private suspend fun sendDataToServer(base64String: String) {
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.130:3000/")
+            .baseUrl("http://192.168.137.1:3001/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()

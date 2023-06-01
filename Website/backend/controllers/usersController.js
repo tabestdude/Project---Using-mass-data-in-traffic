@@ -24,24 +24,6 @@ module.exports = {
         });
     },
 
-    getTwoNewest: function(req, res){
-        UsersModel.find()
-        .sort({_id: -1})
-        .limit(2)
-        .populate('gpsData')
-        .populate('accelerometerData')
-        .populate('gyroscopeData')
-        .exec(function(err, userss){
-            if(err){
-                return res.status(500).json({
-                    message: 'Error when getting users.',
-                    error: err
-                });
-            }
-            return res.json(userss);
-        });
-    },
-
     login: function(req, res, next){
         UsersModel.authenticate(req.body.username, req.body.password, function(err, user){
             if(err || !user){

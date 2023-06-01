@@ -5,6 +5,23 @@ var RoadstateModel = require('../models/roadStateModel.js');
  *
  * @description :: Server-side logic for managing roadStates.
  */
+
+function calculateStandardDeviation(data) {
+    const mean = calculateMean(data);
+    const differencesSquared = data.map(x => Math.pow(x - mean, 2));
+    const sumOfDifferencesSquared = differencesSquared.reduce((a, b) => a + b, 0);
+    const variance = sumOfDifferencesSquared / data.length;
+    const standardDeviation = Math.sqrt(variance);
+    return standardDeviation;
+}
+
+function calculateMean(data) {
+    const sum = data.reduce((a, b) => a + b, 0);
+    const mean = sum / data.length;
+    return mean;
+}
+  
+
 module.exports = {
 
     /**
@@ -47,16 +64,48 @@ module.exports = {
         });
     },
 
+    getTwoNewest: function(req, res){
+        RoadstateModel.find()
+        .sort({acquisitionTime: -1})
+        .limit(2)
+        .populate('publisher')
+        .exec(function(err, roadState){
+            if(err){
+                return res.status(500).json({
+                    message: 'Error when getting users.',
+                    error: err
+                });
+            }
+            return res.json(roadState);
+        });
+    },
+
     /**
      * roadStateController.create()
      */
     create: function (req, res) {
+        const { accX, accY, accZ, longitude, latitude, ownerId } = req.body;
+
+        const accXStd = calculateStandardDeviation(accX);
+        const accYStd = calculateStandardDeviation(accY);
+        const accZStd = calculateStandardDeviation(accZ);
+
+        const stdMean = (accXStd + accYStd + accZStd) / 3;
+
+        // Define the thresholds
+        const lowThreshold = 2; // Adjust as needed
+        const mediumThreshold = 3.5; // Adjust as needed
+        const highThreshold = 7; // Adjust as needed
+        
+        // Determine if the road was bumpy
+        const stateOfRoadCalculated = stdMean < lowThreshold ? 0 : stdMean < mediumThreshold ? 1 : stdMean < highThreshold ? 2 : 3;
+
         var roadState = new RoadstateModel({
-			gpsData : req.body.gpsData,
-			accelerometerData : req.body.accelerometerData,
-			gyroscopeData : req.body.gyroscopeData,
-			stateOfRoad : req.body.stateOfRoad,
-			recommendedDriving : req.body.recommendedDriving
+			stateOfRoad : stateOfRoadCalculated,
+			latitude : latitude,
+			longitude : longitude,
+			acquisitionTime : Date.now(),
+            publisher: ownerId
         });
 
         roadState.save(function (err, roadState) {
@@ -67,7 +116,7 @@ module.exports = {
                 });
             }
 
-            return res.status(201).json(roadState);
+            return res.json({ status: 'success', message: 'Data received successfully' });
         });
     },
 

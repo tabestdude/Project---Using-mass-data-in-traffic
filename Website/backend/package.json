@@ -21,6 +21,7 @@
     "mongoose": "^6.9.0",
     "morgan": "~1.9.1",
     "multer": "^1.4.5-lts.1",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "statistics": "^3.3.0"
   }
 }

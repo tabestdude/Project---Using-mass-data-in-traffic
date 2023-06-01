@@ -29,10 +29,10 @@ function MapComponent() {
     
 
     return (
-        <MapContainer center={mariborCoordinates} zoom={13} scrollWheelZoom={true} style={{ height: "90vh" }}>
+        <MapContainer center={mariborCoordinates} zoom={16} scrollWheelZoom={true} style={{ height: "90vh" }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {/* Add markers and other components here */}
             <Polyline positions={pathCoordinates} pathOptions={polylineOptions}/>
+            
         </MapContainer>
     );
 }
