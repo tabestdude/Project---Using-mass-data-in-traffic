@@ -107,7 +107,7 @@ def HOGhistogramOrientatedGradients(grayScalePicture, cellsSize, blocksSize, seg
     return numpy.concatenate(features)
 # --------------------------------------------------------------------------------------------
 # vhodne slike
-inputPictures = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/PROJEKTNA/Prepoznavanje/dataset/**/*.jpg")]
+inputPictures = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/FERI/PROJEKTNANaloga/Prepoznavanje/dataset/**/*.jpg")]
 # velkiost celic, velikost blokov, segmenti, procent
 cellsSize = int()
 blocksSize = int()
@@ -115,26 +115,33 @@ segments = int()
 lowPercentile = int()
 # vhod
 print("Machine learning.")
-input("Press ENTER to start.")
-print("Input cells size:")
-cellsSize = int(input())
-print("Input blocks size:")
-blocksSize = int(input())
-print("Input number of segments:")
-segments = int(input())
-print("Input learning percent %:")
-lowPercentile = int(input())
+        #input("Press ENTER to start.")
+        #print("Input cells size:")
+        #cellsSize = int(input())
+        #print("Input blocks size:")
+        #blocksSize = int(input())
+        #print("Input number of segments:")
+        #segments = int(input())
+        #print("Input learning percent %:")
+        #lowPercentile = int(input())
 
+cellsSize = 8
+blocksSize = 2
+segments = 9
+#lowPercentile = int(0.8 * len(inputPictures))
+lowPercentile = 80
 
 # če slika ni None, jo zmanjšamo na velikost 100x100 in jo dodamo v seznam pictures
 pictures=[]
 
 for picture in inputPictures:
     if(picture is not None):
-        picture=cv2.resize(picture,(100,100))
+        picture=cv2.resize(picture,(120,120))
         pictures.append(picture)
     else:
         print(picture)
+
+print("Length images", len(pictures))
 
 # hog in lbp polja za Luka
 HOGLuka=[]
@@ -160,10 +167,12 @@ for HOGcurrent, LBPcurrent, in zip(HOGLuka, LBPLuka):
 personList=[]
 
 for i in range(int(len(pictures))):
-    if(i < 500):
+    if(i < 1800):
         personList.append("Luka")
-    else:
+    if(i < 3600):
         personList.append("Ales")
+    if(i < 5400):
+        personList.append("Other") 
 
 labels = numpy.array(personList)
 
@@ -201,7 +210,7 @@ with open('trained_model.pkl', 'rb') as file:
     model = pickle.load(file)
 
 # pripravijo se testne slike
-test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/PROJEKTNA/Prepoznavanje/testImages/*.jpg")]
+test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/FERI/PROJEKTNANaloga/Prepoznavanje/testImages/*.jpg")]
 
 processed_test_images = []
 for image in test_images:
@@ -243,9 +252,13 @@ predictions = model.predict(cleaned_test_features)
 # prikaz slik in ugibanja
 for image, prediction in zip(test_images, predictions):
     cv2.imshow("Test Image", image)
-    print("Prediction:", prediction)
+    if prediction == "Luka":
+        print("Prediction: Luka")
+    elif prediction == "Ales":
+        print("Prediction: Ales")
+    else:
+        print("Prediction: Other")
     cv2.waitKey(0)
-
 # predikcije na testnem delu
 yPredicting = KNN.predict(xTesting)
 # računanje classifier, izračun natančnosti z primerjanjem label yPredicting z pravimi labelami yTesting
