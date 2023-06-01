@@ -136,7 +136,7 @@ pictures=[]
 
 for picture in inputPictures:
     if(picture is not None):
-        picture=cv2.resize(picture,(120,120))
+        picture=cv2.resize(picture,(120,140))
         pictures.append(picture)
     else:
         print(picture)
@@ -215,7 +215,7 @@ test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/FER
 processed_test_images = []
 for image in test_images:
     if image is not None:
-        image = cv2.resize(image, (100, 100))
+        image = cv2.resize(image, (120, 140))
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         processed_test_images.append(gray_image)
 
