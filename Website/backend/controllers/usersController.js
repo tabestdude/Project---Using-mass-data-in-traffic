@@ -12,7 +12,9 @@ module.exports = {
      * usersController.list()
      */
     list: function (req, res) {
-        UsersModel.find(function (err, userss) {
+        UsersModel.find()
+        .populate('roadStates')
+        .exec(function (err, userss) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting users.',
@@ -34,7 +36,17 @@ module.exports = {
         });
     },
 
+    loginPhone: function(req, res, next){
+        UsersModel.authenticate(req.body.username, req.body.password, function(err, user){
+            if(err || !user){
+                return res.status(401).json({ error: 'Invalid username or password' });
+            }
+            return res.json(user);
+        });
+    },
+
     logout: function(req, res, next){
+        console.log("Session destroyed");
         if(req.session){
             req.session.destroy(function(err){
                 if(err){

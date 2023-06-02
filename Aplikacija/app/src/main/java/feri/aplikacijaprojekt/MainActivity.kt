@@ -63,6 +63,8 @@ private var wasDataSent = false
 
 private const val dataArraySize = 6
 
+private var isRunning = false
+
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private val handler = Handler()
@@ -73,7 +75,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var mSensorManager: SensorManager
     private lateinit var mAccelerometer: Sensor
-    private lateinit var mGyroscope: Sensor
 
     private lateinit var accXTextView: TextView
     private lateinit var accYTextView: TextView
@@ -83,6 +84,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var latitudeTextView: TextView
     private lateinit var longitudeTextView: TextView
+
+    private lateinit var runningDisplayTextView: TextView
 
 
 
@@ -103,14 +106,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         latitudeTextView = findViewById<TextView>(R.id.latitude)
         longitudeTextView = findViewById<TextView>(R.id.longitude)
 
+        runningDisplayTextView = findViewById<TextView>(R.id.runningDisplay)
+
         // inicializacija senzorjev
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
         val infoButtonClick = findViewById<Button>(R.id.infoButton)
         infoButtonClick.setOnClickListener {
             val intent = Intent(this@MainActivity, InfoActivity::class.java)
             startActivity(intent)
+        }
+
+        val toggleButtonClick = findViewById<Button>(R.id.toggleButton)
+        toggleButtonClick.setOnClickListener {
+            isRunning = !isRunning
+            runningDisplayTextView.text = if (isRunning) "Enabled" else "Disabled"
         }
 
     }
@@ -144,7 +154,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
         // registracija senzorjev
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     private fun startRunnable() {
@@ -257,20 +266,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private suspend fun sendToDatabase() {
         val userId = intent.getStringExtra("USER_ID")
         while (true) {
+            if (isRunning){
+                // Create a new JSONObject with the sensor data
+                val dataToSend = JSONObject()
+                dataToSend.put("accX", JSONArray(globalAccX))
+                dataToSend.put("accY", JSONArray(globalAccY))
+                dataToSend.put("accZ", JSONArray(globalAccZ))
+                dataToSend.put("longitude", globalLongitude)
+                dataToSend.put("latitude", globalLatitude)
+                dataToSend.put("ownerId", userId) // Set the ownerId to null for now
 
-            // Create a new JSONObject with the sensor data
-            val dataToSend = JSONObject()
-            dataToSend.put("accX", JSONArray(globalAccX))
-            dataToSend.put("accY", JSONArray(globalAccY))
-            dataToSend.put("accZ", JSONArray(globalAccZ))
-            dataToSend.put("longitude", globalLongitude)
-            dataToSend.put("latitude", globalLatitude)
-            dataToSend.put("ownerId", userId) // Set the ownerId to null for now
+                Log.d("MainActivity", "Data to send: $dataToSend")
 
-            Log.d("MainActivity", "Data to send: $dataToSend")
-
-            sendDataToServer(dataToSend)
-
+                sendDataToServer(dataToSend)
+            }
             delay(5000) // Wait 5 seconds before sending the next data point
         }
     }

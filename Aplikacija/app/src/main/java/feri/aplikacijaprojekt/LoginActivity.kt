@@ -61,7 +61,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private interface ApiService {
-        @POST("users/login")
+        @POST("users/login/phone")
         suspend fun sendData(@Body data: RequestBody): Response<ResponseBody>
     }
 

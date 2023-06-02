@@ -5,14 +5,14 @@ import { Navigate } from 'react-router-dom';
 function Logout(){
     const userContext = useContext(UserContext); 
     useEffect(function(){
-        const logout = async function(){
-            userContext.setUserContext(null);
-            const res = await fetch("http://backend:3080/users/logout");
-        }
         /*const logout = async function(){
             userContext.setUserContext(null);
-            const res = await fetch("http://localhost:3001/users/logout");
+            const res = await fetch("http://backend:3080/users/logout");
         }*/
+        const logout = async function(){
+            userContext.setUserContext(null);
+            const res = await fetch("http://localhost:3001/users/logout/user");
+        }
         logout();
     }, []);
 

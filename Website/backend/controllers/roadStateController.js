@@ -1,4 +1,5 @@
 var RoadstateModel = require('../models/roadStateModel.js');
+var usersModel = require('../models/usersModel.js');
 
 /**
  * roadStateController.js
@@ -28,8 +29,26 @@ module.exports = {
      * roadStateController.list()
      */
     list: function (req, res) {
-        RoadstateModel.find(function (err, roadStates) {
+        RoadstateModel.find()
+        .sort({_id: -1})
+        .exec(function (err, roadStates) {
             if (err) {
+                return res.status(500).json({
+                    message: 'Error when getting roadState.',
+                    error: err
+                });
+            }
+            return res.json(roadStates);
+        });
+    },
+
+    listByPublisher: function (req, res) {
+        var id = req.params.id;
+        RoadstateModel.find({publisher: id})
+        .sort({acquisitionTime: -1})
+        .exec(function (err, roadStates) {
+            if (err) {
+                
                 return res.status(500).json({
                     message: 'Error when getting roadState.',
                     error: err
@@ -68,7 +87,6 @@ module.exports = {
         RoadstateModel.find()
         .sort({acquisitionTime: -1})
         .limit(2)
-        .populate('publisher')
         .exec(function(err, roadState){
             if(err){
                 return res.status(500).json({
@@ -85,6 +103,10 @@ module.exports = {
      */
     create: function (req, res) {
         const { accX, accY, accZ, longitude, latitude, ownerId } = req.body;
+
+        if (longitude == 0 || latitude == 0){
+            return res.json({ status: 'success', message: 'Data received successfully' });
+        }
 
         const accXStd = calculateStandardDeviation(accX);
         const accYStd = calculateStandardDeviation(accY);
@@ -104,8 +126,7 @@ module.exports = {
 			stateOfRoad : stateOfRoadCalculated,
 			latitude : latitude,
 			longitude : longitude,
-			acquisitionTime : Date.now(),
-            publisher: ownerId
+			acquisitionTime : Date.now()
         });
 
         roadState.save(function (err, roadState) {
@@ -115,8 +136,18 @@ module.exports = {
                     error: err
                 });
             }
-
-            return res.json({ status: 'success', message: 'Data received successfully' });
+            usersModel.findOne({_id: ownerId}, function(err, user){
+                user.roadStates.push(roadState._id);
+                user.save(function(err, user){
+                    if(err){
+                        return res.status(500).json({
+                            message: 'Error when creating roadState',
+                            error: err
+                        });
+                    }
+                    return res.json({ status: 'success', message: 'Data received successfully' });
+                });
+            });
         });
     },
 

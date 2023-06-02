@@ -11,6 +11,7 @@ router.get('/', roadStateController.list);
  * GET
  */
 router.get('/:id', roadStateController.show);
+router.get('/publisher/:id', roadStateController.listByPublisher);
 
 /*
  * POST

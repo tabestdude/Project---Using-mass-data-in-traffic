@@ -5,7 +5,11 @@ var bcrypt = require('bcrypt');
 var usersSchema = new Schema({
 	'email' : String,
 	'username' : String,
-	'password' : String
+	'password' : String,
+	'roadStates' : [{
+		type: Schema.Types.ObjectId,
+		ref: 'roadState'
+	}]
 });
 
 usersSchema.statics.authenticate = function(username, password, callback){
