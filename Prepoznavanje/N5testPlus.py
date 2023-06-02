@@ -118,7 +118,7 @@ test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/FER
 processed_test_images = []
 for image in test_images:
     if image is not None:
-        image = cv2.resize(image, (100, 100))
+        image = cv2.resize(image, (120, 140))
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         processed_test_images.append(gray_image)
 
@@ -154,7 +154,7 @@ predictions = model.predict(cleaned_test_features)
 
 # prikaz slik in ugibanja
 for image, prediction in zip(test_images, predictions):
-    resizedImage = cv2.resize(image, (480, 720))
+    resizedImage = cv2.resize(image, (120, 140))
     cv2.imshow("Test Image", resizedImage)
     if prediction == "Luka":
         print("Prediction: Luka")
