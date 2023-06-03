@@ -9,27 +9,25 @@ function MapComponent() {
 
     useEffect(function(){
         const getPaths = async function(){
-            const res = await fetch("http://localhost:3001/users");
+            const res = await fetch("http://localhost:3001/users/personal/map", {credentials: "include"});
             const data = await res.json();
             if(!res.ok){
                 console.log(data);
                 return;
             }
             
-            
             var tempPaths = [];
-            for (var i = 0; i < data.length; i++) {
-                for (var j = 0; j < data[i].roadStates.length - 1; j++) {
-                    var tempStateOfRoad = data[i].roadStates[j].stateOfRoad;
-                    var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
-                    tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data[i].roadStates[j].latitude, data[i].roadStates[j].longitude], [data[i].roadStates[j + 1].latitude, data[i].roadStates[j + 1].longitude]]});
-                }
-                
+            for (var j = 0; j < data.roadStates.length - 1; j++) {
+                var tempStateOfRoad = data.roadStates[j].stateOfRoad;
+                var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
+                tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data.roadStates[j].latitude, data.roadStates[j].longitude], [data.roadStates[j + 1].latitude, data.roadStates[j + 1].longitude]]});
             }
+                
+            
             setPaths(tempPaths);
         }
 
-        // Set interval to call getPaths every 5000ms (5 seconds)
+        // Set interval to call getPaths every 1000ms (1 seconds)
         const interval = setInterval(() => {
             getPaths();
         }, 1000);

@@ -11,6 +11,8 @@ router.get('/', usersController.list);
  * GET
  */
 router.get('/:id', usersController.show);
+router.get('/personal/map', usersController.showPersonal);
+router.get('/test', usersController.showPersonal);
 //router.get('/logout', usersController.logout); // it's not working
 router.get('/logout/user', usersController.logout);
 /*

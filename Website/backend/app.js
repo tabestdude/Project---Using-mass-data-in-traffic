@@ -1,6 +1,7 @@
 console.log(process.env.PORT);
 var createError = require('http-errors');
 var express = require('express');
+var usersController = require('./controllers/usersController.js');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
@@ -61,6 +62,25 @@ app.use(function (req, res, next) {
   res.locals.session = req.session;
   next();
 });
+
+// Clean up old data every 5 seconds
+setInterval(() => {
+  const mockReq = {};
+  const mockRes = {
+      status: function (statusCode) {
+          this.statusCode = statusCode;
+          return this;
+      },
+      json: function (data) {
+          /*console.log("Response status code:", this.statusCode);
+          console.log("Response data:", data);*/
+          return this;
+      }
+  };
+  usersController.cleanupOldRoadStates(mockReq, mockRes);
+}, 5000);
+
+
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
