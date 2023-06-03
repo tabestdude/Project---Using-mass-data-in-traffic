@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Logout from "./components/Logout";
 import Map from "./components/Map";
+import PersonalMap from "./components/PersonalMap";
 
 function App() {
 
@@ -28,6 +29,7 @@ function App() {
             <Route path="/login" exact element={<Login />}></Route>
             <Route path="/register" exact element={<Register />}></Route>
             <Route path="/logout" exact element={<Logout />}></Route>
+            <Route path="/personalMap" exact element={<PersonalMap />}></Route>
           </Routes>
         </div>
       </UserContext.Provider>

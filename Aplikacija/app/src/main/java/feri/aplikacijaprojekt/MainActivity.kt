@@ -49,9 +49,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException*/
 
-var globalGiroX = DoubleArray(6)
-var globalGiroY = DoubleArray(6)
-var globalGiroZ = DoubleArray(6)
 
 var globalAccX = DoubleArray(6)
 var globalAccY = DoubleArray(6)
@@ -61,6 +58,12 @@ var globalLongitude = 0.0;
 var globalLatitude = 0.0;
 
 private var counter = 0
+
+private var wasDataSent = false
+
+private const val dataArraySize = 6
+
+private var isRunning = false
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -72,20 +75,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var mSensorManager: SensorManager
     private lateinit var mAccelerometer: Sensor
-    private lateinit var mGyroscope: Sensor
 
     private lateinit var accXTextView: TextView
     private lateinit var accYTextView: TextView
     private lateinit var accZTextView: TextView
 
-    private lateinit var giroXTextView: TextView
-    private lateinit var giroYTextView: TextView
-    private lateinit var giroZTextView: TextView
-
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     private lateinit var latitudeTextView: TextView
     private lateinit var longitudeTextView: TextView
+
+    private lateinit var runningDisplayTextView: TextView
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,23 +101,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         accYTextView = findViewById<TextView>(R.id.accY2)
         accZTextView = findViewById<TextView>(R.id.accZ2)
 
-        giroXTextView = findViewById<TextView>(R.id.giroX)
-        giroYTextView = findViewById<TextView>(R.id.giroY)
-        giroZTextView = findViewById<TextView>(R.id.giroZ)
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         latitudeTextView = findViewById<TextView>(R.id.latitude)
         longitudeTextView = findViewById<TextView>(R.id.longitude)
 
+        runningDisplayTextView = findViewById<TextView>(R.id.runningDisplay)
+
         // inicializacija senzorjev
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
         val infoButtonClick = findViewById<Button>(R.id.infoButton)
         infoButtonClick.setOnClickListener {
             val intent = Intent(this@MainActivity, InfoActivity::class.java)
             startActivity(intent)
+        }
+
+        val toggleButtonClick = findViewById<Button>(R.id.toggleButton)
+        toggleButtonClick.setOnClickListener {
+            isRunning = !isRunning
+            runningDisplayTextView.text = if (isRunning) "Enabled" else "Disabled"
         }
 
     }
@@ -149,7 +154,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
         // registracija senzorjev
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     private fun startRunnable() {
@@ -162,13 +166,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     // Handle the new location
                     if (location != null) {
                         // Use the location data
-                        val latitude = location.latitude
-                        val longitude = location.longitude
                         latitudeTextView.text = "Latitude: ${location.latitude}"
                         longitudeTextView.text = "Longitude: ${location.longitude}"
 
-                        globalLatitude = location.latitude.toDouble()
-                        globalLongitude = location.longitude.toDouble()
+                        globalLatitude = location.latitude
+                        globalLongitude = location.longitude
 
                         //Log.d("MainActivity", "Latitude: $latitude, Longitude: $longitude")
                     }
@@ -178,7 +180,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION_PERMISSION)
             }
             startRunnable() // Schedule the code to run again after 5 seconds
-        }, 5000)
+        }, 1000)
     }
 
     override fun onPause() {
@@ -192,57 +194,43 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            val currentTime1 = System.currentTimeMillis()
-            if (currentTime1 - lastUpdateTime >= 5000) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastUpdateTime >= 1000) {
                 // x y z TextView se posodobi
                 accXTextView.text = "X: ${event.values[0]}"
                 accYTextView.text = "Y: ${event.values[1]}"
                 accZTextView.text = "Z: ${event.values[2]}"
             }
 
-            globalAccX[counter] = event.values[0].toDouble()
-            globalAccY[counter] = event.values[1].toDouble()
-            globalAccZ[counter] = event.values[2].toDouble()
-
-        } else if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastUpdateTime >= 5000) {
-                // x y z TextView se posodobi
-                giroXTextView.text = "X: ${event.values[0]}"
-                giroYTextView.text = "Y: ${event.values[1]}"
-                giroZTextView.text = "Z: ${event.values[2]}"
-
-                lastUpdateTime = currentTime
+            if (counter < dataArraySize) {
+                globalAccX[counter] = event.values[0].toDouble()
+                globalAccY[counter] = event.values[1].toDouble()
+                globalAccZ[counter] = event.values[2].toDouble()
             }
-
-            globalGiroX[counter] = event.values[0].toDouble()
-            globalGiroY[counter] = event.values[1].toDouble()
-            globalGiroZ[counter] = event.values[2].toDouble()
 
             counter++
 
-            if (counter == 6) {
+            if (counter >= dataArraySize && wasDataSent) {
                 // Reset the counter and arrays
-                globalAccX = DoubleArray(6)
-                globalAccY = DoubleArray(6)
-                globalAccZ = DoubleArray(6)
-                globalGiroX = DoubleArray(6)
-                globalGiroY = DoubleArray(6)
-                globalGiroZ = DoubleArray(6)
+                globalAccX = DoubleArray(dataArraySize)
+                globalAccY = DoubleArray(dataArraySize)
+                globalAccZ = DoubleArray(dataArraySize)
                 counter = 0
+                wasDataSent = false
             }
+
         }
     }
 
     interface ApiService {
-        @POST("api/data/")
+        @POST("roadState")
         suspend fun sendData(@Body data: RequestBody): Response<Unit>
     }
 
     private suspend fun sendDataToServer(data: JSONObject) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.130:3000/")
+            .baseUrl("http://192.168.137.1:3001/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()
@@ -269,30 +257,30 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         if (response != null && response.isSuccessful) {
             Log.d(TAG, "Data sent successfully")
             Log.d(TAG, "Response: ${response.body()}")
+            wasDataSent = true
         } else {
             Log.e(TAG, "Failed to send data or no response from server")
         }
     }
 
     private suspend fun sendToDatabase() {
+        val userId = intent.getStringExtra("USER_ID")
         while (true) {
-            // Create a new JSONObject with the sensor data
-            val dataToSend = JSONObject()
-            /*dataToSend.put("giroX", JSONArray(globalGiroX))
-            dataToSend.put("giroY", JSONArray(globalGiroY))
-            dataToSend.put("giroZ", JSONArray(globalGiroZ))*/
-            dataToSend.put("accX", JSONArray(globalAccX))
-            dataToSend.put("accY", JSONArray(globalAccY))
-            dataToSend.put("accZ", JSONArray(globalAccZ))
-            dataToSend.put("longitude", globalLongitude)
-            dataToSend.put("latitude", globalLatitude)
-            dataToSend.put("ownerId", null) // Set the ownerId to null for now
+            if (isRunning){
+                // Create a new JSONObject with the sensor data
+                val dataToSend = JSONObject()
+                dataToSend.put("accX", JSONArray(globalAccX))
+                dataToSend.put("accY", JSONArray(globalAccY))
+                dataToSend.put("accZ", JSONArray(globalAccZ))
+                dataToSend.put("longitude", globalLongitude)
+                dataToSend.put("latitude", globalLatitude)
+                dataToSend.put("ownerId", userId) // Set the ownerId to null for now
 
-            Log.d("MainActivity", "Data to send: $dataToSend")
+                Log.d("MainActivity", "Data to send: $dataToSend")
 
-            sendDataToServer(dataToSend)
-
-            delay(5000) // Wait 5 seconds before sending the next data point
+                sendDataToServer(dataToSend)
+            }
+            delay(1000) // Wait 5 seconds before sending the next data point
         }
     }
 

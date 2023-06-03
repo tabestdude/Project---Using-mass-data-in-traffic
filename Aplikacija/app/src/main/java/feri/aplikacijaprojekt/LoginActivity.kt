@@ -44,7 +44,6 @@ class LoginActivity : AppCompatActivity() {
         btnSubmit = findViewById(R.id.btn_submit)
 
         btnSubmit.setOnClickListener {
-            val userName = etUserName.text.toString()
 
             // Set the globalUsername and globalPassword from the EditTexts
             globalUsername = etUserName.text.toString()
@@ -53,9 +52,8 @@ class LoginActivity : AppCompatActivity() {
             val dataToSend = JSONObject()
             dataToSend.put("username", globalUsername)
             dataToSend.put("password", globalPassword)
-            dataToSend.put("ownerId", null) // Set the ownerId to null for now
-            // Add the sensor data to the JSONObject
 
+            // Add the sensor data to the JSONObject
             CoroutineScope(Dispatchers.Main).launch {
                 sendDataToServer(dataToSend)
             }
@@ -63,14 +61,14 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private interface ApiService {
-        @POST("api/data/login/")
+        @POST("users/login/phone")
         suspend fun sendData(@Body data: RequestBody): Response<ResponseBody>
     }
 
     private suspend fun sendDataToServer(data: JSONObject) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.130:3000/")
+            .baseUrl("http://192.168.137.1:3001/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()
@@ -102,11 +100,12 @@ class LoginActivity : AppCompatActivity() {
             val responseBody = response.body()?.string()
             if (responseBody != null) {
                 val responseJson = JSONObject(responseBody)
-                val isLoginSuccessful = responseJson.getBoolean("isLoginSuccessful")
-                if (isLoginSuccessful) {
+                val userId = responseJson.optString("_id");
+                if (!userId.equals("")) {
                     // Launch the next activity
-                    val intent = Intent(this@LoginActivity, PhotoActivity::class.java)
-                    startActivity(intent)
+                    val photoIntent = Intent(this@LoginActivity, PhotoActivity::class.java)
+                    photoIntent.putExtra("USER_ID", userId)
+                    startActivity(photoIntent)
                 } else {
                     // Show a popup with an error message
                     runOnUiThread {

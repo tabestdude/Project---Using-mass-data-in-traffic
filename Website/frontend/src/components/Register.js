@@ -8,18 +8,7 @@ function Register() {
 
     async function Register(e){
         e.preventDefault();
-        const res = await fetch("http://backend:3080/users", {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: email,
-                username: username,
-                password: password
-            })
-        });
-        /*
-        const res = await fetch("http://localhost:3001/users", {
+        /*const res = await fetch("http://backend:3080/users", {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -29,6 +18,17 @@ function Register() {
                 password: password
             })
         });*/
+        
+        const res = await fetch("http://localhost:3001/users", {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: email,
+                username: username,
+                password: password
+            })
+        });
         const data = await res.json();
         if(data._id !== undefined){
             window.location.href="/";

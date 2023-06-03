@@ -1,5 +1,6 @@
 var UsersModel = require('../models/usersModel.js');
 var bcrypt = require('bcrypt');
+var roadStateModel = require('../models/roadStateModel.js');
 
 /**
  * usersController.js
@@ -12,7 +13,9 @@ module.exports = {
      * usersController.list()
      */
     list: function (req, res) {
-        UsersModel.find(function (err, userss) {
+        UsersModel.find()
+        .populate('roadStates')
+        .exec(function (err, userss) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting users.',
@@ -24,21 +27,38 @@ module.exports = {
         });
     },
 
-    getTwoNewest: function(req, res){
+    cleanupOldRoadStates: function(req, res){
         UsersModel.find()
-        .sort({_id: -1})
-        .limit(2)
-        .populate('gpsData')
-        .populate('accelerometerData')
-        .populate('gyroscopeData')
-        .exec(function(err, userss){
-            if(err){
+        .populate('roadStates')
+        .exec(function (err, userss) {
+            if (err) {
                 return res.status(500).json({
                     message: 'Error when getting users.',
                     error: err
                 });
             }
-            return res.json(userss);
+            var dateNow = new Date();
+            var dateNowMinusOneMinute = new Date(dateNow.getTime() - 60*1000);
+            var roadStatesArray = [];
+            for(var i = 0; i < userss.length; i++){
+                for(var j = 0; j < userss[i].roadStates.length; j++){
+                    if(userss[i].roadStates[j].acquisitionTime < dateNowMinusOneMinute){
+                        roadStatesArray.push(userss[i].roadStates[j]._id);
+                        userss[i].roadStates.splice(j, 1);
+                        j--;
+                    }
+                }
+                userss[i].save();
+            }
+            roadStateModel.deleteMany({_id: {$in: roadStatesArray}}, function(err){
+                if(err){
+                    return res.status(500).json({
+                        message: 'Error when deleting roadStates.',
+                        error: err
+                    });
+                }
+                return res.status(204).json(userss);
+            });
         });
     },
 
@@ -52,7 +72,17 @@ module.exports = {
         });
     },
 
+    loginPhone: function(req, res, next){
+        UsersModel.authenticate(req.body.username, req.body.password, function(err, user){
+            if(err || !user){
+                return res.status(401).json({ error: 'Invalid username or password' });
+            }
+            return res.json(user);
+        });
+    },
+
     logout: function(req, res, next){
+        console.log("Session destroyed");
         if(req.session){
             req.session.destroy(function(err){
                 if(err){
@@ -71,6 +101,28 @@ module.exports = {
         var id = req.params.id;
 
         UsersModel.findOne({_id: id}, function (err, users) {
+            if (err) {
+                return res.status(500).json({
+                    message: 'Error when getting users.',
+                    error: err
+                });
+            }
+
+            if (!users) {
+                return res.status(404).json({
+                    message: 'No such users'
+                });
+            }
+
+            return res.json(users);
+        });
+    },
+
+    showPersonal: function (req, res) {
+        var id = req.session.userId;
+        UsersModel.findOne({_id: id})
+        .populate('roadStates')
+        .exec(function (err, users) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting users.',
