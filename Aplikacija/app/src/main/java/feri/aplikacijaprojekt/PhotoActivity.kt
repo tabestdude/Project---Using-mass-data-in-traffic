@@ -9,11 +9,13 @@ import android.graphics.Color.convert
 import android.location.Location.convert
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Base64
 import android.util.Log
 import android.util.Size
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -23,10 +25,18 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import feri.aplikacijaprojekt.MainActivity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
+import org.json.JSONObject
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -34,7 +44,11 @@ import retrofit2.http.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.IOException
 import java.net.SocketTimeoutException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -43,7 +57,7 @@ class PhotoActivity : AppCompatActivity() {
 
     private lateinit var viewFinder: PreviewView
     private lateinit var btnTakePhoto: Button
-    private lateinit var btnContinue: Button
+    private lateinit var retryTextView: TextView
 
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
@@ -56,7 +70,6 @@ class PhotoActivity : AppCompatActivity() {
 
         viewFinder = findViewById(R.id.previewView)
         btnTakePhoto = findViewById(R.id.btnTakePhoto)
-        btnContinue = findViewById(R.id.btnContinue)
 
         // Initialize camera executor
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -64,22 +77,21 @@ class PhotoActivity : AppCompatActivity() {
         // Set click listener for take photo button
         btnTakePhoto.setOnClickListener { takePhoto() }
 
-        // Set click listener for continue button
-        btnContinue.setOnClickListener {
-            val mainIntent = Intent(this, MainActivity::class.java)
-            val userId = intent.getStringExtra("USER_ID");
-            mainIntent.putExtra("USER_ID", userId)
-            startActivity(mainIntent)
-        }
-
         // Request camera permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             // Permission has already been granted
-            startCamera()
+            takePhoto()
         } else {
             // Permission has not yet been granted, request it
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), REQUEST_CAMERA_PERMISSION)
         }
+    }
+
+    private fun goToMainActivity(){
+        val mainIntent = Intent(this, MainActivity::class.java)
+        val userId = intent.getStringExtra("USER_ID");
+        mainIntent.putExtra("USER_ID", userId)
+        startActivity(mainIntent)
     }
 
     override fun onResume() {
@@ -138,35 +150,88 @@ class PhotoActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val savedUri = Uri.fromFile(photoFile)
-                    val msg = "Photo capture succeeded: $savedUri"
-                    Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
 
-                    // Read the image data from the file
-                    val inputStream = FileInputStream(photoFile)
-                    val buffer = ByteArray(photoFile.length().toInt())
-                    inputStream.read(buffer)
-                    inputStream.close()
-
-                    // Encode the image data to base64
-                    val base64String = Base64.encodeToString(buffer, Base64.DEFAULT)
+                    val bytes = photoFile.readBytes()
+                    val base64String = Base64.encodeToString(bytes, Base64.DEFAULT).replace("\n", "")
 
                     // Send the image data to the server
                     GlobalScope.launch {
-                        sendDataToServer(base64String)
-                    }
+                        try {
+                            Log.d("PhotoActivity", "result from sending data: before getting result")
+                            val result = sendDataToPythonServer(base64String)
+                            Log.d("PhotoActivity", "result from sending data: $result")
+                            withContext(Dispatchers.Main) {
+                                handleServerResult(result)
+                            }
 
-                    viewFinder.visibility = View.GONE
-                    btnTakePhoto.visibility = View.GONE
-                    btnContinue.visibility = View.VISIBLE
+                            if (photoFile.exists()) {
+                                val deleted = photoFile.delete()
+                                if (deleted)
+                                    Log.d("PhotoActivity", "File was deleted successfully")
+                                else
+                                    Log.d("PhotoActivity", "Failed to delete the file")
+                            }
+                        } catch (e: Exception){
+                            Log.e("PhotoActivity", e.stackTraceToString())
+                        }
+
+                    }
+                    btnTakePhoto.visibility = View.VISIBLE
                 }
 
                 override fun onError(exception: ImageCaptureException) {
                     Log.e(TAG, "Photo capture failed: ${exception.message}", exception)
+                    if (photoFile.exists()) {
+                        val deleted = photoFile.delete()
+                        if (deleted)
+                            Log.d("PhotoActivity", "File was deleted successfully")
+                        else
+                            Log.d("PhotoActivity", "Failed to delete the file")
+                    }
                 }
             })
     }
 
+    private suspend fun sendDataToPythonServer(base64String: String): String {
+
+        val json = JSONObject()
+        json.put("image", base64String)
+        val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+
+
+        val request: Request = Request.Builder()
+            .url("http://192.168.137.1:5000/predict")
+            .post(requestBody)
+            .build()
+
+        val client = OkHttpClient()
+        val response = client.newCall(request).execute()
+
+        return response.body?.string() ?: ""
+    }
+
+    private fun printToastForNewImage(){
+        val msg = "Please try again"
+        Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun handleServerResult(result: String) {
+        val username = intent.getStringExtra("USERNAME")
+        Log.d("PhotoActivity", "Before if statements")
+        if (result.contains("Luka")) {
+            if (username.equals("luka"))
+                goToMainActivity()
+            else
+                printToastForNewImage()
+        } else if (result.contains("Ales")) {
+            if (username.equals("ales"))
+                goToMainActivity()
+            else
+                printToastForNewImage()
+        } else {
+            printToastForNewImage()
+        }
+    }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -183,66 +248,6 @@ class PhotoActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "PhotoActivity"
         private const val REQUEST_CAMERA_PERMISSION = 1
-    }
-
-    private interface ApiService {
-        @POST("api/data/image/")
-        @Headers("Content-Type: application/json") // Add this line to set the Content-Type header
-        suspend fun sendData(@Body requestBody: Map<String, String>): Response<ResponseBody>
-    }
-
-    private suspend fun sendDataToServer(base64String: String) {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.137.1:3001/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(
-                OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .build()
-            )
-            .build()
-
-        val service = retrofit.create(ApiService::class.java)
-
-        val requestBody = mapOf("image" to base64String) // Create a JSON object with the 'image' field
-
-        var response: Response<ResponseBody>? = null
-        var retries = 0
-        while (response == null && retries < 3) {
-            try {
-                response = service.sendData(requestBody) // Pass the requestBody instead of base64String
-            } catch (e: SocketTimeoutException) {
-                retries++
-                Log.e(TAG, "Socket timeout exception, retrying...")
-            }
-        }
-
-        if (response != null && response.isSuccessful) {
-            Log.d(TAG, "Image sent successfully")
-        } else {
-            Log.e(TAG, "Failed to send image or no response from server")
-        }
-    }
-
-
-
-    object ImageUtil {
-
-        @Throws(IllegalArgumentException::class)
-        fun convert(base64Str: String): Bitmap {
-            val decodedBytes = Base64.decode(
-                base64Str.substring(base64Str.indexOf(",") + 1),
-                Base64.DEFAULT
-            )
-            return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-        }
-
-        fun convert(bitmap: Bitmap): String {
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            return Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
-        }
-
     }
 
 }

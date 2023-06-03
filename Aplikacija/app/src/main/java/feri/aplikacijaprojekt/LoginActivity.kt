@@ -100,11 +100,13 @@ class LoginActivity : AppCompatActivity() {
             val responseBody = response.body()?.string()
             if (responseBody != null) {
                 val responseJson = JSONObject(responseBody)
-                val userId = responseJson.optString("_id");
-                if (!userId.equals("")) {
+                val userId = responseJson.optString("_id")
+                val username = responseJson.optString("username")
+                if (!userId.equals("") || !username.equals("")) {
                     // Launch the next activity
                     val photoIntent = Intent(this@LoginActivity, PhotoActivity::class.java)
                     photoIntent.putExtra("USER_ID", userId)
+                    photoIntent.putExtra("USERNAME", username)
                     startActivity(photoIntent)
                 } else {
                     // Show a popup with an error message
@@ -113,10 +115,12 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             } else {
-                Log.e(ContentValues.TAG, "Failed to get response body")
+                val msg = "Wrong username/password"
+                Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
             }
         } else {
-            Log.e(ContentValues.TAG, "Failed to send data or no response from server")
+            val msg = "Wrong username/password"
+            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
         }
     }
 }
