@@ -10,7 +10,7 @@
     <string name="toggle">On/Off</string>
     <string name="mapa">Mapa</string>
     <string name="_132_00">132.00</string>
-    <string name="aplikacija_za_mobilni_telefon_bo_zajemala_senzorske_podatke_podatke_iz_pospe_kometra_podatke_iz_iroskopa_orientacija_vozila_lokacija_as_aplikacija_bo_dobivala_podatke_iz_senzorja_in_iz_njih_zdru_evala_z_podatki_iz_pospe_kometra_se_bo_obravnavalo_stanje_ceste_vibracije_z_podatki_iz_iroskopa_se_bo_vedela_orientacija_z_lokacijo_se_bo_videlo_kje_se_trenutno_nahaja_in_as_bo_seveda_povedal_kdaj_je_bila_meritev_dobljena">Aplikacija za mobilni telefon bo zajemala senzorske podatke: Podatke iz pospeškometra. Podatke iz žiroskopa (orientacija vozila). Lokacija. Čas. Aplikacija bo dobivala podatke iz senzorja in iz njih združevala. Z podatki iz pospeškometra se bo obravnavalo stanje ceste (vibracije). Z podatki iz žiroskopa se bo vedela orientacija. Z lokacijo se bo videlo, kje se trenutno nahaja. In čas bo seveda povedal kdaj je bila meritev dobljena.</string>
+    <string name="appDescription">Aplikacija za mobilni telefon bo zajemala senzorske podatke:\n\nPodatke iz pospeškometra. Lokacija. Aplikacija bo dobivala podatke iz senzorja in jih pošiljala na server. S podatki iz pospeškometra se bo obravnavalo stanje ceste (vibracije). Z lokacijo se bo videlo, kje se trenutno nahaja.</string>
     <string name="avtorja">Avtorja:</string>
     <string name="informacije_o_aplikaciji">Informacije o aplikaciji</string>
     <string name="ale_lenko_in_luka_majer">Aleš Lenko in Luka Majer</string>

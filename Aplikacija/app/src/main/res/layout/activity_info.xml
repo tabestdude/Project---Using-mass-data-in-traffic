@@ -62,7 +62,7 @@
         android:layout_width="321dp"
         android:layout_height="341dp"
         android:layout_marginTop="4dp"
-        android:text="@string/aplikacija_za_mobilni_telefon_bo_zajemala_senzorske_podatke_podatke_iz_pospe_kometra_podatke_iz_iroskopa_orientacija_vozila_lokacija_as_aplikacija_bo_dobivala_podatke_iz_senzorja_in_iz_njih_zdru_evala_z_podatki_iz_pospe_kometra_se_bo_obravnavalo_stanje_ceste_vibracije_z_podatki_iz_iroskopa_se_bo_vedela_orientacija_z_lokacijo_se_bo_videlo_kje_se_trenutno_nahaja_in_as_bo_seveda_povedal_kdaj_je_bila_meritev_dobljena"
+        android:text="@string/appDescription"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent"
