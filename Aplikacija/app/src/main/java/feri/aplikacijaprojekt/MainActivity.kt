@@ -180,7 +180,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION_PERMISSION)
             }
             startRunnable() // Schedule the code to run again after 5 seconds
-        }, 5000)
+        }, 1000)
     }
 
     override fun onPause() {
@@ -280,7 +280,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
                 sendDataToServer(dataToSend)
             }
-            delay(5000) // Wait 5 seconds before sending the next data point
+            delay(1000) // Wait 5 seconds before sending the next data point
         }
     }
 

@@ -23,43 +23,23 @@ function MapComponent() {
                 for (var j = 0; j < data[i].roadStates.length - 1; j++) {
                     var tempStateOfRoad = data[i].roadStates[j].stateOfRoad;
                     var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
-                    tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 9}, path: [[data[i].roadStates[j].latitude, data[i].roadStates[j].longitude], [data[i].roadStates[j + 1].latitude, data[i].roadStates[j + 1].longitude]]});
+                    tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data[i].roadStates[j].latitude, data[i].roadStates[j].longitude], [data[i].roadStates[j + 1].latitude, data[i].roadStates[j + 1].longitude]]});
                 }
                 
             }
             setPaths(tempPaths);
         }
 
-        getPaths();
+        // Set interval to call getPaths every 5000ms (5 seconds)
+        const interval = setInterval(() => {
+            getPaths();
+        }, 1000);
 
-        
+        // Clear interval on component unmount
+        return () => clearInterval(interval);
     }, []);
 
     const [mariborCoordinates, setCoordinates] = React.useState([46.558993, 15.638081]);
-    const [pathCoordinates, setPathCoordinates] = React.useState([
-        [46.558993, 15.638081], // Starting point coordinates
-        [46.558, 15.639],
-        [46.570, 15.670],
-        [46.571, 15.671], // Ending point coordinates
-    ]);
-
-    const [polylineOptions, setPolylineOptions] = React.useState({
-        color: 'green', // Change the color to red
-        dashArray: '1, 4', // Make it a dotted line
-    });
-    
-    const shouldChangeOptions = false;
-
-    useEffect(() => {
-        if (shouldChangeOptions) {
-            setPolylineOptions({
-            color: 'red', // Change the color to blue
-            dashArray: '3, 6', // Make it a dashed line
-            weight: 50, // Make it 10 pixels wide
-            });
-        }
-    }, []);
-    
 
     return (
         <MapContainer center={mariborCoordinates} zoom={16} scrollWheelZoom={true} style={{ height: "90vh" }}>
