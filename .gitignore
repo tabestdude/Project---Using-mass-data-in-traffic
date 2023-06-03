@@ -9,3 +9,5 @@ images/
 test/
 testImages/
 node_modules/
+Prepoznavanje/Flask/trained_model.pkl
+Prepoznavanje/trained_model.pkl
