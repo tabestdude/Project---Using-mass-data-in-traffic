@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify # uvozi knižnico flask za flask
 import cv2   # uvozi knjižnico OpenCV za računalniški vid
 import numpy # uvozi knjižnico NumPy za numerične operacije
 import pandas # uvozi knjižnico pandas za obdelavo in analizo podatkov
-import glob   # uvozi modul glob za obdelavo datotek
-import pickle # uvozi funkcio joblib za shranjevanje modela
+import pickle 
 import base64
 from sklearn.model_selection import train_test_split   # uvozi funkcijo train_test_split za razdelitev podatkov
 from sklearn.neighbors import KNeighborsClassifier   # uvozi razred KNeighborsClassifier za k najbližjih sosedov

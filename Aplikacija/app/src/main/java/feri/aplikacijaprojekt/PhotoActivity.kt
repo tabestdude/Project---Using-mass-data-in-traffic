@@ -217,6 +217,8 @@ class PhotoActivity : AppCompatActivity() {
 
     private fun handleServerResult(result: String) {
         val username = intent.getStringExtra("USERNAME")
+        if (username.equals("admin"))
+            goToMainActivity()
         Log.d("PhotoActivity", "Before if statements")
         if (result.contains("Luka")) {
             if (username.equals("luka"))
@@ -231,6 +233,7 @@ class PhotoActivity : AppCompatActivity() {
         } else {
             printToastForNewImage()
         }
+
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
