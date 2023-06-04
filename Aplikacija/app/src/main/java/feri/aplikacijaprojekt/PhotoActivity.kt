@@ -75,11 +75,13 @@ class PhotoActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         // Set click listener for take photo button
-        btnTakePhoto.setOnClickListener { takePhoto() }
+        btnTakePhoto.setOnClickListener {
+            btnTakePhoto.isEnabled = false
+            takePhoto()
+        }
 
         // Request camera permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            // Permission has already been granted
             takePhoto()
         } else {
             // Permission has not yet been granted, request it
@@ -157,10 +159,15 @@ class PhotoActivity : AppCompatActivity() {
                     // Send the image data to the server
                     GlobalScope.launch {
                         try {
+                            withContext(Dispatchers.Main) {
+                                val msg = "Photo sent"
+                                Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+                            }
                             Log.d("PhotoActivity", "result from sending data: before getting result")
                             val result = sendDataToPythonServer(base64String)
                             Log.d("PhotoActivity", "result from sending data: $result")
                             withContext(Dispatchers.Main) {
+                                btnTakePhoto.isEnabled = true
                                 handleServerResult(result)
                             }
 
