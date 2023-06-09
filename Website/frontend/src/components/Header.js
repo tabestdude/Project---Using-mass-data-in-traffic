@@ -7,7 +7,7 @@ function Header(props) {
         
         <header className="bg-dark text-light py-3">
             <div className="container d-flex justify-content-between align-items-center">
-                <h1>{props.title}</h1>
+                <h1>Masivni podatki v prometu</h1>
                 <nav>
                     <ul className="list-inline mb-0">
                         <li className="list-inline-item">
