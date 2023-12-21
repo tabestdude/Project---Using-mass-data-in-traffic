@@ -10,30 +10,6 @@ from sklearn.metrics import accuracy_score # uvozi funkcijo accuracy_score iz mo
 from sklearn.metrics import classification_report   # uvozi funkcijo classification_report iz modula metrics v knjižnici scikit-learn
 # from sklearn.externals import joblib # uvozi funkcio joblib za shranjevanje modela
 # --------------------------------------------------------------------------------------------
-def splitData(pictures, lowPercentile):
-    # int deljenje
-    halfDistance = len(pictures) // 2
-    # Lukas procent
-    percentLuka = int(halfDistance * (lowPercentile / 100))
-    # Aless procent
-    percentAles = int(halfDistance * (lowPercentile / 100))
-
-    # seznam za učenje (luka)
-    learnLuka = pictures[:percentLuka]
-    # seznam za učenje (ales)
-    learnAles = pictures[halfDistance:halfDistance+percentAles]
-    # seznam za testiranje (luka)
-    testLuka = pictures[percentLuka:halfDistance]
-    # seznam za testiranje (ales)
-    testAles = pictures[halfDistance+percentAles:]
-    
-    # končni seznam za učenje
-    learn = learnLuka + learnAles
-    # končni seznam za testiranje
-    test = testLuka + testAles
-    
-    return learn, test
-# --------------------------------------------------------------------------------------------
 def LBPlocBinPattern(picture):
     height, width = picture.shape
     lbpImage = numpy.zeros((height - 2, width - 2), dtype=numpy.uint8)
@@ -107,7 +83,7 @@ def HOGhistogramOrientatedGradients(grayScalePicture, cellsSize, blocksSize, seg
     return numpy.concatenate(features)
 # --------------------------------------------------------------------------------------------
 # vhodne slike
-inputPictures = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/PROJEKTNA/Prepoznavanje/dataset/**/*.jpg")]
+
 # velkiost celic, velikost blokov, segmenti, procent
 cellsSize = int()
 blocksSize = int()
@@ -115,85 +91,21 @@ segments = int()
 lowPercentile = int()
 # vhod
 print("Machine learning.")
-input("Press ENTER to start.")
-print("Input cells size:")
-cellsSize = int(input())
-print("Input blocks size:")
-blocksSize = int(input())
-print("Input number of segments:")
-segments = int(input())
-print("Input learning percent %:")
-lowPercentile = int(input())
+        #input("Press ENTER to start.")
+        #print("Input cells size:")
+        #cellsSize = int(input())
+        #print("Input blocks size:")
+        #blocksSize = int(input())
+        #print("Input number of segments:")
+        #segments = int(input())
+        #print("Input learning percent %:")
+        #lowPercentile = int(input())
 
-
-# če slika ni None, jo zmanjšamo na velikost 100x100 in jo dodamo v seznam pictures
-pictures=[]
-
-for picture in inputPictures:
-    if(picture is not None):
-        picture=cv2.resize(picture,(100,100))
-        pictures.append(picture)
-    else:
-        print(picture)
-
-# hog in lbp polja za Luka
-HOGLuka=[]
-LBPLuka=[]
-
-for picture in pictures:
-    grayscalePicture = cv2.cvtColor(picture, cv2.COLOR_BGR2GRAY)
-    HOGLuka.append(HOGhistogramOrientatedGradients(grayscalePicture, cellsSize, blocksSize, segments))
-    LBPLuka.append(LBPlocBinPattern(grayscalePicture))
-
-# HOGLuka in LBPLuka so polja z HOG in LBP informacijami za vsako sliko
-combinedLearning=[]
-
-for HOGcurrent, LBPcurrent, in zip(HOGLuka, LBPLuka):
-    # 'ravnanje' HOG in LBP
-    HOGflat = HOGcurrent.flatten()
-    LBPflat = LBPcurrent.flatten()
-    # združenje 'porovnanih' informacij
-    HOG_LBP_combined = numpy.hstack((HOGflat, LBPflat))
-    combinedLearning.append(HOG_LBP_combined)
-
-# ustvarjanje label
-personList=[]
-
-for i in range(int(len(pictures))):
-    if(i < 500):
-        personList.append("Luka")
-    else:
-        personList.append("Ales")
-
-labels = numpy.array(personList)
-
-# krajšemu seznamu se doda 0, če je to potrebno
-maximumLength = max(len(combinedLearning), len(labels))
-
-if len(combinedLearning) < maximumLength:
-    combinedLearning += [numpy.zeros_like(combinedLearning[0])] * (maximumLength - len(combinedLearning))
-elif len(labels) < maximumLength:
-    labels = numpy.hstack((labels, [None] * (maximumLength - len(labels))))
-
-# če so kje vrednosti NaN, se napolnijo z column mean (stolpec)
-# ustvari pandas DataFrame iz seznama combinedLearning
-combinedLearningDataFrame = pandas.DataFrame(combinedLearning)
-# zamenjaj manjkajoče vrednosti (NaN) z povprečjem stolpca
-combinedLearningDataFrame.fillna(combinedLearningDataFrame.mean(), inplace=True)
-# pretvori DataFrame combinedLearningDataFrame nazaj v seznam seznamov
-combinedLearningCleaning = combinedLearningDataFrame.values.tolist()
-
-# razdelitev podatkov in treniranje calssifier-jev
-# x za treniranje in destiranje podrobnosti (features), y za treniranje in testiranje label (labels)
-xTraining, xTesting, yTraining, yTesting = train_test_split(combinedLearningCleaning, labels, test_size=(lowPercentile/100), random_state=2)
-# K-Nearest neighbhours classifier z 3 'sosedi'
-KNN = KNeighborsClassifier(n_neighbors=3)
-# treniranja classifier-a z podatki za treniranje
-KNN.fit(xTraining, yTraining)
-
-# shrani se model
-with open('trained_model.pkl', 'wb') as file:
-    pickle.dump(KNN, file)
+cellsSize = 8
+blocksSize = 2
+segments = 9
+#lowPercentile = int(0.8 * len(inputPictures))
+lowPercentile = 80
 
 
 # naloži se shranjen model
@@ -201,7 +113,7 @@ with open('trained_model.pkl', 'rb') as file:
     model = pickle.load(file)
 
 # pripravijo se testne slike
-test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/PROJEKTNA/Prepoznavanje/testImages/*.jpg")]
+test_images = [cv2.imread(file) for file in glob.glob("C:/Users/Luka/Desktop/FERI/PROJEKTNANaloga/Prepoznavanje/testImages/*.jpg")]
 
 processed_test_images = []
 for image in test_images:
@@ -242,20 +154,15 @@ predictions = model.predict(cleaned_test_features)
 
 # prikaz slik in ugibanja
 for image, prediction in zip(test_images, predictions):
-    cv2.imshow("Test Image", image)
-    print("Prediction:", prediction)
+    resizedImage = cv2.resize(image, (480, 720))
+    cv2.imshow("Test Image", resizedImage)
+    if prediction == "Luka":
+        print("Prediction: Luka")
+    elif prediction == "Ales":
+        print("Prediction: Ales")
+    else:
+        print("Prediction: Other")
     cv2.waitKey(0)
-
-# predikcije na testnem delu
-yPredicting = KNN.predict(xTesting)
-# računanje classifier, izračun natančnosti z primerjanjem label yPredicting z pravimi labelami yTesting
-predictionAccuracy = accuracy_score(yTesting, yPredicting)
-
-# izpis ugibanja
-print(f"Accuracy: {predictionAccuracy:.3f} \n")
-
-# izpis reporta
-print("Classification report:\n", classification_report(yTesting, yPredicting))
 
 #cv2.imshow("Test result.", pictures[0])
 cv2.waitKey(0)
