@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private suspend fun sendDataToServer(data: JSONObject) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.130:3000/")
+            .baseUrl("http://192.168.202.103:3000/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()
