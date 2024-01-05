@@ -9,13 +9,22 @@ function MapComponent() {
 
     useEffect(function(){
         const getPaths = async function(){
-            const res = await fetch("http://localhost:3001/users");
-            const data = await res.json();
-            if(!res.ok){
-                console.log(data);
+            var res;
+            if(errorDetected){
                 return;
             }
-            
+            try{
+                res = await fetch("http://localhost:3001/users");
+                if(!res.ok){
+                    errorDetected = true;
+                    return;
+                }
+            } catch (err) {
+                errorDetected = true;
+                return;
+            }
+
+            const data = await res.json();
             
             var tempPaths = [];
             for (var i = 0; i < data.length; i++) {
