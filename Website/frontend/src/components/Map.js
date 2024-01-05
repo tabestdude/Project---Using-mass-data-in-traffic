@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 function MapComponent() {
 
     const [paths, setPaths] = useState([]);
-
+    var errorDetected = false;
 
     useEffect(function(){
         const getPaths = async function(){
