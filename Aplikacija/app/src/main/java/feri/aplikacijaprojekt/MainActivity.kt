@@ -25,8 +25,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
@@ -40,32 +42,16 @@ import retrofit2.http.POST
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
-/*import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.IOException*/
-
-
-var globalAccX = DoubleArray(6)
-var globalAccY = DoubleArray(6)
-var globalAccZ = DoubleArray(6)
-
 var globalLongitude = 0.0;
 var globalLatitude = 0.0;
 
-private var counter = 0
-
 private var wasDataSent = false
-
-private const val dataArraySize = 6
 
 private var isRunning = false
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+private var sendToggleSwitch = false;
+
+class MainActivity : AppCompatActivity() {
 
     private val handler = Handler()
 
@@ -74,11 +60,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private lateinit var mSensorManager: SensorManager
-    private lateinit var mAccelerometer: Sensor
-
-    private lateinit var accXTextView: TextView
-    private lateinit var accYTextView: TextView
-    private lateinit var accZTextView: TextView
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -96,20 +77,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         // referenca na sensorManager na napravi
         mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        // findView za elemente
-        accXTextView = findViewById<TextView>(R.id.accX2)
-        accYTextView = findViewById<TextView>(R.id.accY2)
-        accZTextView = findViewById<TextView>(R.id.accZ2)
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         latitudeTextView = findViewById<TextView>(R.id.latitude)
         longitudeTextView = findViewById<TextView>(R.id.longitude)
 
         runningDisplayTextView = findViewById<TextView>(R.id.runningDisplay)
-
-        // inicializacija senzorjev
-        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         val infoButtonClick = findViewById<Button>(R.id.infoButton)
         infoButtonClick.setOnClickListener {
@@ -121,12 +94,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         toggleButtonClick.setOnClickListener {
             isRunning = !isRunning
             runningDisplayTextView.text = if (isRunning) "Enabled" else "Disabled"
+            sendToggleSwitch = true
         }
 
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Do nothing
     }
 
     override fun onStart() {
@@ -150,10 +120,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         super.onResume()
         startRunnable()
         CoroutineScope(Dispatchers.Main).launch {
-            sendToDatabase()
+            sendToBoardServer()
         }
-        // registracija senzorjev
-        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     private fun startRunnable() {
@@ -171,8 +139,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
                         globalLatitude = location.latitude
                         globalLongitude = location.longitude
-
-                        //Log.d("MainActivity", "Latitude: $latitude, Longitude: $longitude")
                     }
                 }
             } else {
@@ -183,54 +149,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }, 1000)
     }
 
-    override fun onPause() {
-        super.onPause()
-
-        // odregistracija senzorjev
-        mSensorManager.unregisterListener(this)
-    }
-
-    private var lastUpdateTime: Long = 0
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            val currentTime = System.currentTimeMillis()
-            if (currentTime - lastUpdateTime >= 1000) {
-                // x y z TextView se posodobi
-                accXTextView.text = "X: ${event.values[0]}"
-                accYTextView.text = "Y: ${event.values[1]}"
-                accZTextView.text = "Z: ${event.values[2]}"
-            }
-
-            if (counter < dataArraySize) {
-                globalAccX[counter] = event.values[0].toDouble()
-                globalAccY[counter] = event.values[1].toDouble()
-                globalAccZ[counter] = event.values[2].toDouble()
-            }
-
-            counter++
-
-            if (counter >= dataArraySize && wasDataSent) {
-                // Reset the counter and arrays
-                globalAccX = DoubleArray(dataArraySize)
-                globalAccY = DoubleArray(dataArraySize)
-                globalAccZ = DoubleArray(dataArraySize)
-                counter = 0
-                wasDataSent = false
-            }
-
-        }
-    }
-
-    interface ApiService {
-        @POST("roadState")
+    interface ApiServiceData {
+        @POST("gpsData")
         suspend fun sendData(@Body data: RequestBody): Response<Unit>
     }
 
-    private suspend fun sendDataToServer(data: JSONObject) {
+    interface ApiServiceToggle {
+        @POST("toggleBoard")
+        suspend fun sendData(@Body data: RequestBody): Response<Unit>
+    }
+
+    private suspend fun sendDataToServer(data: JSONObject, sendingToggle: Boolean) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.137.1:3001/")
+            .baseUrl("http://192.168.137.1:5000/")
             .addConverterFactory(GsonConverterFactory.create())
             .client(
                 OkHttpClient.Builder()
@@ -239,15 +171,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             )
             .build()
 
-        val service = retrofit.create(ApiService::class.java)
-
         val requestBody = data.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
         var response: Response<Unit>? = null
         var retries = 0
         while (response == null && retries < 3) {
             try {
-                response = service.sendData(requestBody)
+                if (sendingToggle) {
+                    response = retrofit.create(ApiServiceToggle::class.java).sendData(requestBody)
+                } else{
+                    response = retrofit.create(ApiServiceData::class.java).sendData(requestBody)
+                }
+
             } catch (e: SocketTimeoutException) {
                 retries++
                 Log.e(TAG, "Socket timeout exception, retrying...")
@@ -263,40 +198,28 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private suspend fun sendToDatabase() {
+    private suspend fun sendToBoardServer() {
         val userId = intent.getStringExtra("USER_ID")
         while (true) {
+            if (sendToggleSwitch){
+                sendToggleSwitch = false
+                val dataToSend = JSONObject()
+                dataToSend.put("isRunning", isRunning)
+
+                sendDataToServer(dataToSend, true)
+            }
             if (isRunning){
                 // Create a new JSONObject with the sensor data
                 val dataToSend = JSONObject()
-                dataToSend.put("accX", JSONArray(globalAccX))
-                dataToSend.put("accY", JSONArray(globalAccY))
-                dataToSend.put("accZ", JSONArray(globalAccZ))
                 dataToSend.put("longitude", globalLongitude)
                 dataToSend.put("latitude", globalLatitude)
                 dataToSend.put("ownerId", userId) // Set the ownerId to null for now
 
                 Log.d("MainActivity", "Data to send: $dataToSend")
 
-                sendDataToServer(dataToSend)
+                sendDataToServer(dataToSend, false)
             }
-            delay(1000) // Wait 5 seconds before sending the next data point
+            delay(1000) // Wait 2 seconds before sending the next data point
         }
     }
-
-
-
-
 }
-
-
-
-/*val message =
-    "GiroX: $globalGiroX\nGiroY: $globalGiroY\nGiroZ: $globalGiroZ\nAccX: $globalAccX\nAccY: $globalAccY\nAccZ: $globalAccZ\nLongitude: $globalLongitude\nLatitude: $globalLatitude\n"
-dialogBuilder.setMessage(message)
-dialogBuilder.setPositiveButton("OK", null)
-val dialog = dialogBuilder.create()
-dialog.show()
-val dialogBuilder = AlertDialog.Builder(this)
-dialogBuilder.setTitle("Variables sent to the Database.")
-*/ // Schedule the code to run again after 5 seconds

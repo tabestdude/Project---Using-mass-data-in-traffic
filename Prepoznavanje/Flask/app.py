@@ -10,11 +10,29 @@ from sklearn.metrics import accuracy_score # uvozi funkcijo accuracy_score iz mo
 from sklearn.metrics import classification_report   # uvozi funkcijo classification_report iz modula metrics v knjižnici scikit-learn
 from skimage.feature import local_binary_pattern
 
+isBoardOn = False
+
 app = Flask(__name__)
 
-@app.route('/predict', methods=['POST'])
-def predict_from_image():
+@app.route('/gpsData', methods=['POST'])
+def getGpsData():
+
+    print(request.json)
     
+    # Return the prediction as JSON
+    return jsonify(result='OK')
+
+@app.route('/toggleBoard', methods=['POST'])
+def toggleBoard():
+
+    print(request.json)
+
+    # Return the prediction as JSON
+    return jsonify(result='OK')
+
+@app.route('/predict', methods=['POST'])
+def predictFromImage():
+
     def lbp(image):
         radius = 1
         neighbors = 8
