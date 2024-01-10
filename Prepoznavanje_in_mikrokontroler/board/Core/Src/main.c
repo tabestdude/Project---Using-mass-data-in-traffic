@@ -49,6 +49,8 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
+uint8_t isRunning = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,8 +142,9 @@ int main(void)
   meritev[0] = 0xaa;
   meritev[1] = 0xab;
 
-  uint8_t isRunning = 0;
+
   uint8_t was_button_pressed = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -161,7 +164,7 @@ int main(void)
 	  	}
 
 	  if (isRunning){
-		  HAL_Delay(100);
+		  HAL_Delay(50);
 
 		  i2c1_beriRegistre(0x19, 0x28,(uint8_t*)&meritev[2], 6);
 

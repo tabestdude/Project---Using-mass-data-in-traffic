@@ -3,15 +3,17 @@ import struct
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import math
+import time
 
 com = 'COM5'
-ser = serial.Serial(com, 9600)
+
 xOS = []
 yOS = []
 zOS = []
 
 
 def animation(i):
+    ser = serial.Serial(com, 9600)
     while ser.in_waiting:
         data = ser.read(8)
         dataS = struct.unpack('<BBBBBBBB', data)
@@ -33,11 +35,24 @@ def animation(i):
     plt.legend(loc='upper left')
     plt.tight_layout()
 
-def main():
-    ani = FuncAnimation(plt.gcf(), animation, interval=100)
+def writeTesting():
+    # start the board
+    ser = serial.Serial(com, 9600)
+    dataS = struct.pack('<BBB', 0xAA, 0xAB, 0x00)
+    try:
+        ser.write(dataS)
 
-    plt.tight_layout()
-    plt.show()
+    except Exception as e:
+        print("An error occurred: ", e)
+    finally:
+        ser.close()
+
+def main():
+    writeTesting()
+    #ani = FuncAnimation(plt.gcf(), animation, interval=100)
+
+    #plt.tight_layout()
+    #plt.show()
 
 
 if __name__ == "__main__":

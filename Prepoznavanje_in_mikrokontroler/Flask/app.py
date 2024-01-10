@@ -9,27 +9,55 @@ from sklearn.neighbors import KNeighborsClassifier   # uvozi razred KNeighborsCl
 from sklearn.metrics import accuracy_score # uvozi funkcijo accuracy_score iz modula metrics v knjižnici scikit-learn
 from sklearn.metrics import classification_report   # uvozi funkcijo classification_report iz modula metrics v knjižnici scikit-learn
 from skimage.feature import local_binary_pattern
+import serial
+from serial.serialutil import SerialException
+import struct
+from threading import Thread, Lock
 
-isBoardOn = False
+com = 'COM5'
+
+lock = Lock()
 
 app = Flask(__name__)
 
 @app.route('/gpsData', methods=['POST'])
 def getGpsData():
+    ser = serial.Serial(com, 9600)
+    counter = 0
+    print("GPS data", request.json)
+    # start the board
+    data = struct.pack('<BBB', 0xAA, 0xAB, 0x01)
+    try:
+        ser.write(data)
+    except Exception as e:
+        print("An error occurred: ", e)
+    # read 10 times
+    try:
+        while counter < 20:
+            while ser.in_waiting:
+                data = ser.read(8)
+                dataS = struct.unpack('<BBBBBBBB', data)
+                if dataS[0] == 0xAA and dataS[1] == 0xAB:
+                        x = (dataS[3] << 8) | dataS[2]
+                        y = (dataS[5] << 8) | dataS[4]
+                        z = (dataS[7] << 8) | dataS[6]
+                        print("X: ", x, "Y: ", y, "Z: ", z)
+                        counter += 1
+                        
+    except Exception as e:
+        print("An error occurred: ", e)
 
-    print(request.json)
+    # stop the board and close the serial port
+    data = struct.pack('<BBB', 0xAA, 0xAB, 0x00)
+    try:
+        ser.write(data)
+    except Exception as e:
+        print("An error occurred: ", e)
+    finally:
+        ser.close()
+    # Return the prediction as JSON
+    return jsonify(result='OK')
     
-    # Return the prediction as JSON
-    return jsonify(result='OK')
-
-@app.route('/toggleBoard', methods=['POST'])
-def toggleBoard():
-
-    print(request.json)
-
-    # Return the prediction as JSON
-    return jsonify(result='OK')
-
 @app.route('/predict', methods=['POST'])
 def predictFromImage():
 
@@ -95,6 +123,6 @@ def predictFromImage():
 
     # Return the prediction as JSON
     return jsonify(prediction=prediction)
-    
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

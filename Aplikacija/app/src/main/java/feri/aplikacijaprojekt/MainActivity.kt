@@ -94,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         toggleButtonClick.setOnClickListener {
             isRunning = !isRunning
             runningDisplayTextView.text = if (isRunning) "Enabled" else "Disabled"
-            sendToggleSwitch = true
         }
 
     }
@@ -154,12 +153,7 @@ class MainActivity : AppCompatActivity() {
         suspend fun sendData(@Body data: RequestBody): Response<Unit>
     }
 
-    interface ApiServiceToggle {
-        @POST("toggleBoard")
-        suspend fun sendData(@Body data: RequestBody): Response<Unit>
-    }
-
-    private suspend fun sendDataToServer(data: JSONObject, sendingToggle: Boolean) {
+    private suspend fun sendDataToServer(data: JSONObject) {
         Log.d("MainActivity", "Sending data: $data")
         val retrofit = Retrofit.Builder()
             .baseUrl("http://192.168.137.1:5000/")
@@ -177,11 +171,7 @@ class MainActivity : AppCompatActivity() {
         var retries = 0
         while (response == null && retries < 3) {
             try {
-                if (sendingToggle) {
-                    response = retrofit.create(ApiServiceToggle::class.java).sendData(requestBody)
-                } else{
-                    response = retrofit.create(ApiServiceData::class.java).sendData(requestBody)
-                }
+                response = retrofit.create(ApiServiceData::class.java).sendData(requestBody)
 
             } catch (e: SocketTimeoutException) {
                 retries++
@@ -201,13 +191,6 @@ class MainActivity : AppCompatActivity() {
     private suspend fun sendToBoardServer() {
         val userId = intent.getStringExtra("USER_ID")
         while (true) {
-            if (sendToggleSwitch){
-                sendToggleSwitch = false
-                val dataToSend = JSONObject()
-                dataToSend.put("isRunning", isRunning)
-
-                sendDataToServer(dataToSend, true)
-            }
             if (isRunning){
                 // Create a new JSONObject with the sensor data
                 val dataToSend = JSONObject()
@@ -217,7 +200,7 @@ class MainActivity : AppCompatActivity() {
 
                 Log.d("MainActivity", "Data to send: $dataToSend")
 
-                sendDataToServer(dataToSend, false)
+                sendDataToServer(dataToSend)
             }
             delay(1000) // Wait 2 seconds before sending the next data point
         }
