@@ -126,7 +126,10 @@ module.exports = {
 			stateOfRoad : stateOfRoadCalculated,
 			latitude : latitude,
 			longitude : longitude,
-			acquisitionTime : Date.now()
+			acquisitionTime : Date.now(),
+            accX : accX,
+            accY : accY,
+            accZ : accZ
         });
 
         roadState.save(function (err, roadState) {
@@ -136,6 +139,7 @@ module.exports = {
                     error: err
                 });
             }
+
             usersModel.findOne({_id: ownerId}, function(err, user){
                 user.roadStates.push(roadState._id);
                 user.save(function(err, user){

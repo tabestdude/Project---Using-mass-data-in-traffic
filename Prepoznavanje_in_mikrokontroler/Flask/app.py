@@ -69,9 +69,7 @@ def getGpsData():
         'ownerId': recievedData.get('ownerId')
     }
 
-    # Convert the dictionary to a JSON object
-    jsonDataToSend = json.dumps(dataToSend)
-    response = requests.post('http://127.0.0.1:3001/roadState', data=jsonDataToSend)
+    response = requests.post('http://127.0.0.1:3001/roadState', json = dataToSend)
 
     if response.status_code == 200:
         return jsonify(Confirmation=200)
