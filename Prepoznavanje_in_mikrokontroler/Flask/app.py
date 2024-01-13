@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify # uvozi knižnico flask za flask
+import requests # uvozi knjižnico requests za delo s spletnimi zahtevami
 import cv2   # uvozi knjižnico OpenCV za računalniški vid
 import numpy # uvozi knjižnico NumPy za numerične operacije
 import pandas # uvozi knjižnico pandas za obdelavo in analizo podatkov
@@ -10,6 +11,7 @@ from sklearn.metrics import accuracy_score # uvozi funkcijo accuracy_score iz mo
 from sklearn.metrics import classification_report   # uvozi funkcijo classification_report iz modula metrics v knjižnici scikit-learn
 from skimage.feature import local_binary_pattern
 import serial
+import json
 from serial.serialutil import SerialException
 import struct
 from threading import Thread, Lock
@@ -24,7 +26,9 @@ app = Flask(__name__)
 def getGpsData():
     ser = serial.Serial(com, 9600)
     counter = 0
-    print("GPS data", request.json)
+    xArray = []
+    yArray = []
+    zArray = []
     # start the board
     data = struct.pack('<BBB', 0xAA, 0xAB, 0x01)
     try:
@@ -33,17 +37,15 @@ def getGpsData():
         print("An error occurred: ", e)
     # read 10 times
     try:
-        while counter < 20:
+        while counter < 15:
             while ser.in_waiting:
                 data = ser.read(8)
                 dataS = struct.unpack('<BBBBBBBB', data)
                 if dataS[0] == 0xAA and dataS[1] == 0xAB:
-                        x = (dataS[3] << 8) | dataS[2]
-                        y = (dataS[5] << 8) | dataS[4]
-                        z = (dataS[7] << 8) | dataS[6]
-                        print("X: ", x, "Y: ", y, "Z: ", z)
+                        xArray.append((dataS[3] << 8) | dataS[2])
+                        yArray.append((dataS[5] << 8) | dataS[4])
+                        zArray.append((dataS[7] << 8) | dataS[6])
                         counter += 1
-                        
     except Exception as e:
         print("An error occurred: ", e)
 
@@ -55,8 +57,27 @@ def getGpsData():
         print("An error occurred: ", e)
     finally:
         ser.close()
-    # Return the prediction as JSON
-    return jsonify(result='OK')
+
+    recievedData = request.get_json()
+
+    dataToSend = {
+        'accX': xArray,
+        'accY': yArray,
+        'accZ': zArray,
+        'longitude': recievedData.get('longitude'),
+        'latitude': recievedData.get('latitude'),
+        'ownerId': recievedData.get('ownerId')
+    }
+
+    # Convert the dictionary to a JSON object
+    jsonDataToSend = json.dumps(dataToSend)
+    response = requests.post('http://127.0.0.1:3001/roadState', data=jsonDataToSend)
+
+    if response.status_code == 200:
+        return jsonify(Confirmation=200)
+    else:
+        return jsonify(Error=400)
+
     
 @app.route('/predict', methods=['POST'])
 def predictFromImage():
