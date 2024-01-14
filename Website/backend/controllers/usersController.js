@@ -360,6 +360,49 @@ module.exports = {
         });
     },
 
+    showArchived: function (req, res) {
+        var id = req.session.userId;
+        UsersModel.findOne({_id: id})
+        .populate('archivedRoadStates')
+        .exec(function (err, users) {
+            if (err) {
+                return res.status(500).json({
+                    message: 'Error when getting users.',
+                    error: err
+                });
+            }
+
+            if (!users) {
+                return res.status(404).json({
+                    message: 'No such users'
+                });
+            }
+            var archivedRoadStates;
+            var archivedRoadStatesLatitude;
+            var archivedRoadStatesLongitude;
+            var archivedRoadStatesAcquisitionTime;
+            if(users.archivedRoadStates != null, users.archivedRoadStates != undefined && users.archivedRoadStates.roadStatesArr != "") {
+                let binaryString = users.archivedRoadStates.roadStatesArr.toString('binary');
+                archivedRoadStates = decompress(binaryString);
+                archivedRoadStatesLatitude = users.archivedRoadStates.latitudeArr;
+                archivedRoadStatesLongitude = users.archivedRoadStates.longitudeArr;
+                archivedRoadStatesAcquisitionTime = users.archivedRoadStates.acquisitionTime;
+            } else {
+                archivedRoadStates = [];
+                archivedRoadStatesLatitude = [];
+                archivedRoadStatesLongitude = [];
+                archivedRoadStatesAcquisitionTime = [];
+            }
+
+            return res.json({
+                roadStates: archivedRoadStates,
+                latitude: archivedRoadStatesLatitude,
+                longitude: archivedRoadStatesLongitude,
+                acquisitionTime: archivedRoadStatesAcquisitionTime
+            });
+        });
+    },
+
     /**
      * usersController.create()
      */

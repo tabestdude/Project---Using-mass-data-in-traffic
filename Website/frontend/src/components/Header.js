@@ -21,6 +21,9 @@ function Header(props) {
                                     <Link to="/personalMap" className="nav-link">MyMap</Link>
                                 </li>
                                 <li className="list-inline-item">
+                                    <Link to="/archivedMap" className="nav-link">Archive</Link>
+                                </li>
+                                <li className="list-inline-item">
                                     <Link to="/logout" className="nav-link">Logout</Link>
                                 </li>
                             </>
