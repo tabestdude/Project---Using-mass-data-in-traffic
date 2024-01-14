@@ -206,7 +206,7 @@ module.exports = {
             }
             
             var dateNow = new Date();
-            var dateNowMinusOneMinute = new Date(dateNow.getTime() - 10*1000);
+            var dateNowMinusOneMinute = new Date(dateNow.getTime() - 60*1000);
             var roadStatesArray = [];
             var userRoadStatesArray = [];
             for(var i = 0; i < userss.length; i++){

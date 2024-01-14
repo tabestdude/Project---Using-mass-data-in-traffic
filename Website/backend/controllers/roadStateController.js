@@ -108,19 +108,28 @@ module.exports = {
             return res.json({ status: 'success', message: 'Data received successfully' });
         }
 
+        for(var i = 0; i < accX.length; i++){
+            accX[i] = (accX[i] / 11.72) / 1000;
+            accY[i] = (accY[i] / 11.72) / 1000;
+            accZ[i] = (accZ[i] / 11.72) / 1000;
+            
+        }
+
         const accXStd = calculateStandardDeviation(accX);
         const accYStd = calculateStandardDeviation(accY);
         const accZStd = calculateStandardDeviation(accZ);
 
         const stdMean = (accXStd + accYStd + accZStd) / 3;
-
+        console.log(stdMean);
         // Define the thresholds
-        const lowThreshold = 2; // Adjust as needed
-        const mediumThreshold = 3.5; // Adjust as needed
-        const highThreshold = 7; // Adjust as needed
+        const lowThreshold = 1.0; // Adjust as needed
+        const mediumThreshold = 1.4; // Adjust as needed
+        const highThreshold = 1.7; // Adjust as needed
         
         // Determine if the road was bumpy
         const stateOfRoadCalculated = stdMean < lowThreshold ? 0 : stdMean < mediumThreshold ? 1 : stdMean < highThreshold ? 2 : 3;
+
+
 
         var roadState = new RoadstateModel({
 			stateOfRoad : stateOfRoadCalculated,

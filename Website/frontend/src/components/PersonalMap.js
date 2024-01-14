@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import GraphComponent from './Graph';
+
 
 function MapComponent() {
 
     const [paths, setPaths] = useState([]);
+    const [data, setData] = useState([]);
 
 
     useEffect(function(){
@@ -15,9 +18,12 @@ function MapComponent() {
                 console.log(data);
                 return;
             }
-            
+            setData(data);
             var tempPaths = [];
             for (var j = 0; j < data.roadStates.length - 1; j++) {
+                if ((data.roadStates[j+1].acquisitionTime - data.roadStates[j].acquisitionTime) > 5000) {
+                    continue;
+                }
                 var tempStateOfRoad = data.roadStates[j].stateOfRoad;
                 var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
                 tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data.roadStates[j].latitude, data.roadStates[j].longitude], [data.roadStates[j + 1].latitude, data.roadStates[j + 1].longitude]]});
@@ -39,14 +45,19 @@ function MapComponent() {
     const [mariborCoordinates, setCoordinates] = React.useState([46.558993, 15.638081]);
 
     return (
-        <MapContainer center={mariborCoordinates} zoom={16} scrollWheelZoom={true} style={{ height: "90vh" }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-            {paths.length > 0 && paths.map((roadPath, index) => (
-                <Polyline key={index} positions={roadPath.path} pathOptions={roadPath.polylineOptions} />
-            ))}
-            
-        </MapContainer>
+        <div style={{ display: 'flex', height: '90vh' }}>
+            <div style={{ flex: 3 }}>
+            <MapContainer center={mariborCoordinates} zoom={16} scrollWheelZoom={true} style={{ height: "90vh" }}>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {paths.length > 0 && paths.map((roadPath, index) => (
+                    <Polyline key={index} positions={roadPath.path} pathOptions={roadPath.polylineOptions} />
+                ))}
+            </MapContainer>
+            </div>
+            <div style={{ flex: 1 }}>
+                {data.roadStates ? <GraphComponent data={data.roadStates} /> : <div>No data available</div>}
+            </div>
+        </div>
     );
 }
 
