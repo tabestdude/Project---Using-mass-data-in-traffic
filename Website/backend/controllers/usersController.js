@@ -5,9 +5,9 @@ const archivedRoadStateModel = require('../models/archivedRoadStateModel.js');
 
 function getDifferenceVector(fileData) {
     let differenceVector = [];
-    differenceVector.push(fileData[0]);
+    differenceVector.push(parseInt(fileData[0]));
     for(let i = 1; i < fileData.length; i++) {
-        differenceVector.push(fileData[i] - fileData[i-1]);
+        differenceVector.push(parseInt(fileData[i]) - parseInt(fileData[i-1]));
     }
     return differenceVector;
 }
@@ -20,7 +20,7 @@ function compress(fileData) {
     let repeatCounter = 1;
     let j = 0;
     for(let i = 1; i < differenceVector.length; i++) {
-        if (differenceVector[i] == 0) {
+        if (parseInt(differenceVector[i]) == 0) {
             repeatCounter = 1;
             j = i + 1;
             while(j < i+8 && j < differenceVector.length && differenceVector[j] == 0) {
@@ -31,26 +31,26 @@ function compress(fileData) {
             binaryString += "01";
             binaryString += (repeatCounter-1).toString(2).padStart(3, '0');
         }
-        else if (differenceVector[i] >= -2 && differenceVector[i] <= 2) {
+        else if (parseInt(differenceVector[i]) >= -2 && parseInt(differenceVector[i]) <= 2) {
             binaryString += "0000";
-            binaryString += (differenceVector[i] < 0 ? differenceVector[i] + 2 : differenceVector[i] + 1).toString(2).padStart(2, '0');
+            binaryString += (parseInt(differenceVector[i]) < 0 ? parseInt(differenceVector[i]) + 2 : parseInt(differenceVector[i]) + 1).toString(2).padStart(2, '0');
         }
-        else if (differenceVector[i] >= -6 && differenceVector[i] <= 6) {
+        else if (parseInt(differenceVector[i]) >= -6 && parseInt(differenceVector[i]) <= 6) {
             binaryString += "0001";
-            binaryString += (differenceVector[i] < 0 ? differenceVector[i] + 6 : differenceVector[i] + 1).toString(2).padStart(3, '0');
+            binaryString += (parseInt(differenceVector[i]) < 0 ? parseInt(differenceVector[i]) + 6 : parseInt(differenceVector[i]) + 1).toString(2).padStart(3, '0');
         }
-        else if (differenceVector[i] >= -14 && differenceVector[i] <= 14) {
+        else if (parseInt(differenceVector[i]) >= -14 && parseInt(differenceVector[i]) <= 14) {
             binaryString += "0010";
-            binaryString += (differenceVector[i] < 0 ? differenceVector[i] + 14 : differenceVector[i] + 1).toString(2).padStart(4, '0');
+            binaryString += (parseInt(differenceVector[i]) < 0 ? parseInt(differenceVector[i]) + 14 : parseInt(differenceVector[i]) + 1).toString(2).padStart(4, '0');
         }
-        else if (differenceVector[i] >= -30 && differenceVector[i] <= 30) {
+        else if (parseInt(differenceVector[i]) >= -30 && parseInt(differenceVector[i]) <= 30) {
             binaryString += "0011";
-            binaryString += (differenceVector[i] < 0 ? differenceVector[i] + 30 : differenceVector[i] + 1).toString(2).padStart(5, '0');
+            binaryString += (parseInt(differenceVector[i]) < 0 ? parseInt(differenceVector[i]) + 30 : parseInt(differenceVector[i]) + 1).toString(2).padStart(5, '0');
         }
         else {
             binaryString += "10";
-            let absoluteValue = Math.abs(differenceVector[i]);
-            binaryString += (differenceVector[i] < 0 ? "1" : "0");
+            let absoluteValue = Math.abs(parseInt(differenceVector[i]));
+            binaryString += (parseInt(differenceVector[i]) < 0 ? "1" : "0");
             binaryString += absoluteValue.toString(2).padStart(8, '0');
         }
     }
@@ -63,7 +63,7 @@ function getValuesFromDifferenceVector(differenceVector) {
     let decompressedData = [];
     decompressedData.push(differenceVector[0]);
     for (let i = 1; i < differenceVector.length; i++) {
-        decompressedData.push(decompressedData[i-1] + differenceVector[i]);
+        decompressedData.push(decompressedData[i-1] + parseInt(differenceVector[i]));
     }
     return decompressedData;
 }
@@ -194,6 +194,7 @@ module.exports = {
     },
 
     cleanupOldRoadStates: function(req, res){
+        console.log("Cleaning up and arhiving old road states");
         UsersModel.find()
         .populate('roadStates')
         .populate('archivedRoadStates')
@@ -277,6 +278,7 @@ module.exports = {
                         error: err
                     });
                 }
+                console.log("Deleted and arhived old road states");
                 return res.status(204).json(userss);
             });
         });
@@ -340,6 +342,7 @@ module.exports = {
 
     showPersonal: function (req, res) {
         var id = req.session.userId;
+        
         UsersModel.findOne({_id: id})
         .populate('roadStates')
         .exec(function (err, users) {
@@ -362,6 +365,7 @@ module.exports = {
 
     showArchived: function (req, res) {
         var id = req.session.userId;
+        
         UsersModel.findOne({_id: id})
         .populate('archivedRoadStates')
         .exec(function (err, users) {

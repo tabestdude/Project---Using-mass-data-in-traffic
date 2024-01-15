@@ -20,8 +20,15 @@ function MapComponent() {
             }
             setData(data);
             var tempPaths = [];
+            var date1 = new Date();
+            var date2 = new Date();
+            var timeDifference = 0;
             for (var j = 0; j < data.roadStates.length - 1; j++) {
-                if ((data.roadStates[j+1].acquisitionTime - data.roadStates[j].acquisitionTime) > 5000) {
+                date1 = Date.parse(data.roadStates[j].acquisitionTime);
+                date2 = Date.parse(data.roadStates[j + 1].acquisitionTime);
+                // Calculate the time difference in milliseconds
+                timeDifference = date2 - date1;
+                if (timeDifference > 5000) {
                     continue;
                 }
                 var tempStateOfRoad = data.roadStates[j].stateOfRoad;

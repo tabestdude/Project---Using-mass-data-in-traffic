@@ -120,7 +120,7 @@ module.exports = {
         const accZStd = calculateStandardDeviation(accZ);
 
         const stdMean = (accXStd + accYStd + accZStd) / 3;
-        console.log(stdMean);
+
         // Define the thresholds
         const lowThreshold = 0.1; // Adjust as needed
         const mediumThreshold = 0.65; // Adjust as needed

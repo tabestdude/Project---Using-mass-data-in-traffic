@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import GraphComponent from './Graph';
 
 
 function ArchivedMapComponent() {
@@ -14,17 +13,29 @@ function ArchivedMapComponent() {
         const getPaths = async function(){
             const res = await fetch("http://localhost:3001/users/personal/archive", {credentials: "include"});
             const data = await res.json();
+            
             if(!res.ok){
                 console.log(data);
                 return;
             }
             setData(data);
             var tempPaths = [];
+            var date1 = new Date();
+            var date2 = new Date();
+            var timeDifference = 0;
             for (var j = 0; j < data.roadStates.length - 1; j++) {
-                if ((data.roadStates[j+1].acquisitionTime - data.roadStates[j].acquisitionTime) > 5000) {
+                date1 = Date.parse(data.acquisitionTime[j]);
+                date2 = Date.parse(data.acquisitionTime[j + 1]);
+                // Calculate the time difference in milliseconds
+                timeDifference = date2 - date1;
+                if (timeDifference > 5000) {
                     continue;
                 }
-                var tempStateOfRoad = data.roadStates[j].stateOfRoad;
+                if ((data.acquisitionTime[j] - data.acquisitionTime[j+1]) > 5000 || data.roadStates[j] == null) {
+                    continue;
+                }
+                
+                var tempStateOfRoad = data.roadStates[j];
                 var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
                 tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data.latitude[j], data.longitude[j]], [data.latitude[j + 1], data.longitude[j + 1]]]});
             }
