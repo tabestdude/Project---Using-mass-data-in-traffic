@@ -46,6 +46,7 @@ def getGpsData():
                         yArray.append((dataS[5] << 8) | dataS[4])
                         zArray.append((dataS[7] << 8) | dataS[6])
                         counter += 1
+                        
     except Exception as e:
         print("An error occurred: ", e)
 

@@ -6,6 +6,7 @@ import math
 import time
 
 com = 'COM5'
+ser = serial.Serial(com, 9600)
 
 xOS = []
 yOS = []
@@ -13,7 +14,8 @@ zOS = []
 
 
 def animation(i):
-    ser = serial.Serial(com, 9600)
+    
+    print("In waiting: ", ser.in_waiting)
     while ser.in_waiting:
         data = ser.read(8)
         dataS = struct.unpack('<BBBBBBBB', data)
@@ -38,7 +40,7 @@ def animation(i):
 def writeTesting():
     # start the board
     ser = serial.Serial(com, 9600)
-    dataS = struct.pack('<BBB', 0xAA, 0xAB, 0x00)
+    dataS = struct.pack('<BBB', 0xAA, 0xAB, 0x01)
     try:
         ser.write(dataS)
 
@@ -48,11 +50,11 @@ def writeTesting():
         ser.close()
 
 def main():
-    writeTesting()
-    #ani = FuncAnimation(plt.gcf(), animation, interval=100)
+    #writeTesting()
+    ani = FuncAnimation(plt.gcf(), animation, interval=100)
 
-    #plt.tight_layout()
-    #plt.show()
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":

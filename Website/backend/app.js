@@ -72,8 +72,6 @@ setInterval(() => {
           return this;
       },
       json: function (data) {
-          /*console.log("Response status code:", this.statusCode);
-          console.log("Response data:", data);*/
           return this;
       }
   };

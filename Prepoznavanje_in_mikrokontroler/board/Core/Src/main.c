@@ -89,8 +89,14 @@ void initLSM303DLHC()
 
   // Za potrebe testa, moramo testni napravi sporociti kateri senzor imamo
   //#define OLD_SENSOR 0x73 // Odkomentiramo za LSM303DLHC / stari senzor
-  //#define NEW_SENSOR 0x6E // Odkomentiramo za LSM303AGR / novi senzor
-
+  #define NEW_SENSOR 0x6E // Odkomentiramo za LSM303AGR / novi senzor
+  #if defined(OLD_SENSOR) && !defined(NEW_SENSOR)
+  	  i2c1_pisiRegister(0x1e, 0x4F, OLD_SENSOR); // Povemo testni napravi, da imamo stari senzor
+  #elif !defined(OLD_SENSOR) && defined(NEW_SENSOR)
+  	  i2c1_pisiRegister(0x1e, 0x4F, NEW_SENSOR); // Povemo testni napravi, da imamo novi senzor
+  #else
+  	  for(;;); // V primeru napake, pocakamo tukaj
+  #endif
 
   HAL_Delay(100);
 
