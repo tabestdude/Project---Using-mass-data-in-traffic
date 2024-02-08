@@ -9,7 +9,11 @@ var usersSchema = new Schema({
 	'roadStates' : [{
 		type: Schema.Types.ObjectId,
 		ref: 'roadState'
-	}]
+	}],
+	'archivedRoadStates' : {
+		type: Schema.Types.ObjectId,
+		ref: 'archivedRoadState'
+	}
 });
 
 usersSchema.statics.authenticate = function(username, password, callback){

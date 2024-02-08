@@ -108,6 +108,13 @@ module.exports = {
             return res.json({ status: 'success', message: 'Data received successfully' });
         }
 
+        for(var i = 0; i < accX.length; i++){
+            accX[i] = accX[i] / 16384.0;
+            accY[i] = accY[i] / 16384.0;
+            accZ[i] = accZ[i] / 16384.0;
+            
+        }
+
         const accXStd = calculateStandardDeviation(accX);
         const accYStd = calculateStandardDeviation(accY);
         const accZStd = calculateStandardDeviation(accZ);
@@ -115,18 +122,23 @@ module.exports = {
         const stdMean = (accXStd + accYStd + accZStd) / 3;
 
         // Define the thresholds
-        const lowThreshold = 2; // Adjust as needed
-        const mediumThreshold = 3.5; // Adjust as needed
-        const highThreshold = 7; // Adjust as needed
+        const lowThreshold = 0.1; // Adjust as needed
+        const mediumThreshold = 0.65; // Adjust as needed
+        const highThreshold = 1.2; // Adjust as needed
         
         // Determine if the road was bumpy
         const stateOfRoadCalculated = stdMean < lowThreshold ? 0 : stdMean < mediumThreshold ? 1 : stdMean < highThreshold ? 2 : 3;
+
+
 
         var roadState = new RoadstateModel({
 			stateOfRoad : stateOfRoadCalculated,
 			latitude : latitude,
 			longitude : longitude,
-			acquisitionTime : Date.now()
+			acquisitionTime : Date.now(),
+            accX : accX,
+            accY : accY,
+            accZ : accZ
         });
 
         roadState.save(function (err, roadState) {
@@ -136,6 +148,7 @@ module.exports = {
                     error: err
                 });
             }
+
             usersModel.findOne({_id: ownerId}, function(err, user){
                 user.roadStates.push(roadState._id);
                 user.save(function(err, user){

@@ -5,21 +5,33 @@ import 'leaflet/dist/leaflet.css';
 function MapComponent() {
 
     const [paths, setPaths] = useState([]);
-
+    var errorDetected = false;
 
     useEffect(function(){
         const getPaths = async function(){
-            const res = await fetch("http://localhost:3001/users");
-            const data = await res.json();
-            if(!res.ok){
-                console.log(data);
+            var res;
+            if(errorDetected){
                 return;
             }
-            
+            try{
+                res = await fetch("http://localhost:3001/users");
+                if(!res.ok){
+                    errorDetected = true;
+                    return;
+                }
+            } catch (err) {
+                errorDetected = true;
+                return;
+            }
+
+            const data = await res.json();
             
             var tempPaths = [];
             for (var i = 0; i < data.length; i++) {
                 for (var j = 0; j < data[i].roadStates.length - 1; j++) {
+                    if ((data[i].roadStates[j+1].acquisitionTime - data[i].roadStates[j].acquisitionTime) > 5000) {
+                        continue;
+                    }
                     var tempStateOfRoad = data[i].roadStates[j].stateOfRoad;
                     var tempColor = tempStateOfRoad === 0 ? 'green' : tempStateOfRoad === 1 ? 'yellow' : tempStateOfRoad === 2 ? 'red' : 'black';
                     tempPaths.push({ polylineOptions: {color: tempColor, dashArray: '3, 6', weight: 4}, path: [[data[i].roadStates[j].latitude, data[i].roadStates[j].longitude], [data[i].roadStates[j + 1].latitude, data[i].roadStates[j + 1].longitude]]});
@@ -29,7 +41,7 @@ function MapComponent() {
             setPaths(tempPaths);
         }
 
-        // Set interval to call getPaths every 5000ms (5 seconds)
+        // Set interval to call getPaths every 1000ms (5 seconds)
         const interval = setInterval(() => {
             getPaths();
         }, 1000);

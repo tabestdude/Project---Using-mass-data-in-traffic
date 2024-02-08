@@ -11,9 +11,9 @@
     <string name="mapa">Mapa</string>
     <string name="_132_00">132.00</string>
     <string name="appDescription">Aplikacija za mobilni telefon bo zajemala senzorske podatke:\n\nPodatke iz pospeškometra. Lokacija. Aplikacija bo dobivala podatke iz senzorja in jih pošiljala na server. S podatki iz pospeškometra se bo obravnavalo stanje ceste (vibracije). Z lokacijo se bo videlo, kje se trenutno nahaja.</string>
-    <string name="avtorja">Avtorja:</string>
+    <string name="avtorji">Avtorji:</string>
     <string name="informacije_o_aplikaciji">Informacije o aplikaciji</string>
-    <string name="ale_lenko_in_luka_majer">Aleš Lenko in Luka Majer</string>
+    <string name="ImenaAvtorjev">Aleš Lenk, Martin Gruber in Luka Majer</string>
     <string name="kratek_opis">Kratek opis:</string>
     <string name="todo">TODO</string>
     <string name="mapa2">Mapa</string>

@@ -7,6 +7,7 @@ import Register from "./components/Register";
 import Logout from "./components/Logout";
 import Map from "./components/Map";
 import PersonalMap from "./components/PersonalMap";
+import ArchivedMapComponent from "./components/ArchivedMap";
 
 function App() {
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="/register" exact element={<Register />}></Route>
             <Route path="/logout" exact element={<Logout />}></Route>
             <Route path="/personalMap" exact element={<PersonalMap />}></Route>
+            <Route path="/archivedMap" exact element={<ArchivedMapComponent />}></Route>
           </Routes>
         </div>
       </UserContext.Provider>

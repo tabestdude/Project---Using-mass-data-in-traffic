@@ -199,7 +199,7 @@ class PhotoActivity : AppCompatActivity() {
             })
     }
 
-    private suspend fun sendDataToPythonServer(base64String: String): String {
+    private fun sendDataToPythonServer(base64String: String): String {
 
         val json = JSONObject()
         json.put("image", base64String)
